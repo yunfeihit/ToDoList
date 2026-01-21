@@ -1,14 +1,14 @@
 import {todoList, addTodo, removeTodo, assignTodoProject} from "./todo.js";
 import {projectList, addProject, removeProject} from "./project.js";
 import {updateOriData, saveData, loadData} from "./storage.js";
-import {content, todoInputDialog, addNewTodoBtn, todoInputForm, renderProjectList} from "./dom.js";
+import {content, todoInputDialog, addNewTodoBtn, todoInputForm, showProjectList, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog} from "./dom.js";
 
 
-//Inner Function: sava app data
+//Inner Function: sava app data to storage
 function saveAppData() {
     const appData = updateOriData();
     saveData(appData);
-    //Test: log it now
+    //Test: log it to see if worked
     console.log(appData);
 }
 
@@ -50,14 +50,17 @@ todoInputDialog.addEventListener('close', () => {
     saveAppData();
     
     todoInputForm.reset();
+
+    renderMainContent();
+
 })
 
-
-function renderProjectListWhenCreateTodo() {
+//Function: show project list when click the <input>
+function showProjectListWhenInputTodo() {
     projectList.forEach(item => {
         const newRenderProject = document.createElement('option');
         newRenderProject.value = item;
-        renderProjectList.appendChild(newRenderProject);
+        showProjectList.appendChild(newRenderProject);
     })
 }
 
@@ -67,22 +70,48 @@ function renderProjectListWhenCreateTodo() {
 
 
 
-
-
-
-
-
-
-
-
-
 //Main Function:
 function loadPage() {
-    renderProjectListWhenCreateTodo();
+    //make the project <input>, only do it once
+    showProjectListWhenInputTodo();
 
+    renderMainContent();
+
+    //render projects in sidebar
+    renderProjectsInSidebar();
+ 
+    const addProjectContainer = document.querySelector('#add-project-container');
+    //put the addProjectBtn in the placeHolder 'add-project-container' first
+    const addProjectButton = createAddProjectBtn(addProjectContainer);
+
+    //if it a 'addProjectButton' and click on it, switch to the 'addProjectDialog'
+    addProjectContainer.addEventListener('click', (event) => {
+        if (event.target.closest('#add-project-btn')) {
+            const theAddProjectDialogObject = createAddProjectDialog();
+
+            //add eventListener on the 'add' button
+            const addProjectButton = theAddProjectDialogObject.addProjectButton;
+            addProjectButton.addEventListener('click', () => {
+                if (theAddProjectDialogObject.addProjectInput.value) {
+                    addProject(theAddProjectDialogObject.addProjectInput.value);
+                    renderProjectsInSidebar();
+                    renderMainContent();     
+                    //for test
+                    console.log(updateOriData());         
+                }
+            })
+        } else if (event.target.id === 'cancel-add-project') {
+            createAddProjectBtn();
+        }
+    })
+
+
+
+
+
+    //for test
+    console.log(updateOriData());
 }
-
-
 
 
 export {loadPage};

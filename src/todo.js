@@ -13,7 +13,7 @@ class Todo {
 const todoList = [];
 
 //add some todo examples and store them in the todoList
-const todoExample1 = new Todo('be happy', 'the most important job ever', '9999-12-31', 'top');
+const todoExample1 = new Todo('be happy', 'the most important job ever', '9999-12-31', 'top', false, 'live');
 const todoExample2 = new Todo('eat', 'body is a temple', '9999-12-31', 'medium');
 todoList.push(todoExample1, todoExample2);
 
