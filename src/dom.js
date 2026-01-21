@@ -1,5 +1,6 @@
-import {projectList, addProject} from "./project.js"
+import {projectList, addProject, removeProject, renameProject} from "./project.js"
 import {todoList} from "./todo.js";
+import {logData} from "./storage.js";
 import rightArrow from "./imgs/arrow_right_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import downArrow from "./imgs/arrow_down_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import projectIcon from "./imgs/format_list_bulleted_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
@@ -187,7 +188,8 @@ function renderProjectsInSidebar() {
         popupMenu.classList.add('edit-project-popup-menu');
         const deleteOptionBtn = document.createElement('div');
         deleteOptionBtn.textContent = 'delete';
-        deleteOptionBtn.classList.add('animate-btn')
+        deleteOptionBtn.classList.add('animate-btn');
+        deleteOptionBtn.id = 'delete-project-btn';
         const renameOptionBtn = document.createElement('div');
         renameOptionBtn.textContent = 'rename';
         renameOptionBtn.classList.add('animate-btn')
@@ -203,6 +205,52 @@ function renderProjectsInSidebar() {
 
         //add eventListener:when click outside of the menu, close it
         setupProjectPopupMenuOutsideClick(popupMenu, moreActionImg);
+
+        //function the delete project button
+        //(for dynamic elements, attach event listeners when creating them, not in the controller.js)
+        deleteOptionBtn.addEventListener('click', () => {
+            removeProject(project);
+            renderProjectsInSidebar();
+            renderMainContent();
+        })
+
+        //function the rename project button
+        //(for dynamic elements, attach event listeners when creating them, not in the controller.js)
+        renameOptionBtn.addEventListener('click', () => {
+            const renameProjectWrap = document.createElement('div');
+            const renameProjectInput = document.createElement('input');
+            const renameProjectBtn = document.createElement('div');
+            const cancelRenameActionBtn = document.createElement('div');
+            renameProjectWrap.classList.add('rename-project-wrap');
+            renameProjectBtn.textContent = 'submit';
+            cancelRenameActionBtn.textContent = 'cancel';
+            renameProjectBtn.classList.add('animate-btn', 'rename-project-btn');
+            cancelRenameActionBtn.classList.add('animate-btn', 'cancel-rename-btn');
+            renameProjectWrap.appendChild(renameProjectInput);
+            renameProjectWrap.appendChild(renameProjectBtn);
+            renameProjectWrap.appendChild(cancelRenameActionBtn);
+
+            renameProjectBtn.addEventListener('click', () => {
+                if (renameProjectInput.value) {
+                    const theNewProjectName = renameProjectInput.value;
+                    renameProject(project, theNewProjectName);
+                    renderProjectsInSidebar();
+                    renderMainContent();
+                }               
+            })
+
+            cancelRenameActionBtn.addEventListener('click', () => {
+                renderProjectsInSidebar();
+                renderMainContent();                
+            })
+
+
+            projectName.replaceWith(renameProjectWrap);
+
+            popupMenu.classList.toggle('show');
+
+        })
+
     })
 
 }

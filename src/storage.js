@@ -21,6 +21,11 @@ function loadData() {
     return jsonData ? JSON.parse(jsonData) : null;
 }
 
+//test function
+function logData() {
+    const theData = updateOriData();
+    console.log(theData);
+}
 
 
-export {saveData, loadData, updateOriData};
+export {saveData, loadData, updateOriData, logData};
