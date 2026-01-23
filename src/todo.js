@@ -31,13 +31,14 @@ function addTodo(todoMetaData) {
     todoList.push(newTodo);
 }
 
-//Function: delete todo(need index)
-function removeTodo(i) {
-    const todoListLength = todoList.length;
-    if (0 <= i && i < todoListLength) {
-        todoList.splice(i, 1);
-    }
-};
+
+//Function: delete todo
+function removeTodo(todoName) {
+    const theIndex = todoList.findIndex(obj => obj.title === todoName);
+    if (theIndex === -1) return;
+    todoList.splice(theIndex, 1);
+}
+
 
 //is this necessary?
 function assignTodoProject(todo, newProject) {

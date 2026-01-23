@@ -1,11 +1,13 @@
 import {projectList, addProject, removeProject, renameProject} from "./project.js"
-import {todoList} from "./todo.js";
+import {todoList, removeTodo} from "./todo.js";
 import {logData} from "./storage.js";
 import rightArrow from "./imgs/arrow_right_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import downArrow from "./imgs/arrow_down_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import projectIcon from "./imgs/format_list_bulleted_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
-import addIcon from "./imgs/add_2_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg"
-import moreActionIcon from "./imgs/more_vert_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg"
+import addIcon from "./imgs/add_2_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import moreActionIcon from "./imgs/more_vert_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import deleteIcon from "./imgs/delete_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+
 
 const content = document.querySelector('#content');
 const mainContentafterAddBtn = document.querySelector('#main-content-after-addBtn');
@@ -29,6 +31,16 @@ function createProjectItem(projectName) {
     projectAndTodosPackage.classList.add('project-todo-wrap');
     projectAndTodosPackage.id = `${projectName.replaceAll(' ', '-')}-todo-wrap`;
 
+    //add a eventListener on '.project-item', so it can fold/unfold the todos
+    projectDiv.addEventListener('click', () => {
+        const todosAppendedAfter = projectDiv.parentElement.querySelector('.todo-wrap');
+        if (todosAppendedAfter) {
+            todosAppendedAfter.remove()
+        } else {
+            renderTodosAfterProject(projectName);
+        }
+    })
+
     projectDiv.appendChild(imgInProjectDiv);
     projectDiv.appendChild(pInProjectDiv);
     projectAndTodosPackage.appendChild(projectDiv);
@@ -36,18 +48,127 @@ function createProjectItem(projectName) {
     return projectAndTodosPackage;//return it to add todos after
 }
 
-// Inner Function: create todo item(within wrap)
-function createTodoItem(todoObject) {
-    const wrappedTodoItem = document.createElement('div');
-    const todoTitle = document.createElement('p');
+// Inner Function: stop event propagation: 
+const stopClick = (e) => e.stopPropagation();
 
-    wrappedTodoItem.classList.add('todo-wrap')
+// Inner Function: create todo item
+function createTodoItem(todoObject) {
+    //wrap: div (wrap todo-item and the description)
+    const wrappedTodoAndDescription = document.createElement('div');
+    wrappedTodoAndDescription.classList.add('todo-and-description-wrap')
+
+    //inner-wrap: div (wrap only todo items)
+    const wrappedTodoItem = document.createElement('div');
+    wrappedTodoItem.classList.add('todo-wrap');
+
+    //isDone: checkbox & title: title
+    const todoCheckBoxWrap = document.createElement('div');
+    const todoCheckBox = document.createElement('input');
+    todoCheckBox.type = 'checkbox';
+    todoCheckBox.classList.add('todo-isDone-check');
+    todoCheckBox.checked = todoObject.isDone;
+    todoCheckBox.addEventListener('change', () => {
+        todoObject.isDone = todoCheckBox.checked;//change the data, dont need to rerender it now, since the status is matched
+    })
+    const todoTitle = document.createElement('p');
     todoTitle.textContent = todoObject.title;
     todoTitle.classList.add('todo-title');
     todoTitle.id = `${todoObject.title}-title`
+    todoCheckBoxWrap.appendChild(todoCheckBox);
+    todoCheckBoxWrap.appendChild(todoTitle);
 
-    wrappedTodoItem.appendChild(todoTitle);
-    return wrappedTodoItem;
+    //dueDate:date
+    const todoDueDate = document.createElement('div');
+    todoDueDate.textContent = todoObject.dueDate;
+    todoDueDate.classList.add('todo-dueDate');
+    const todoDuedateLabel = document.createElement('label');
+    todoDuedateLabel.textContent = 'duedate:'
+    todoDuedateLabel.appendChild(todoDueDate);
+
+    //priority: <select>
+    const todoPrioritySelect = document.createElement('select');
+    todoPrioritySelect.classList.add('todo-priority');
+    const todoPriorityLabel = document.createElement('label');
+    todoPriorityLabel.textContent = 'Priority:';
+    const optionTop = document.createElement('option');
+    optionTop.textContent = 'top';
+    optionTop.value = 'top';
+    const optionMedium = document.createElement('option');
+    optionMedium.textContent = 'medium';
+    optionMedium.value = 'medium';
+    const optionLow = document.createElement('option');
+    optionLow.textContent = 'low';
+    optionLow.value = 'low';
+    const optionUnset = document.createElement('option');
+    optionUnset.textContent = 'unset';
+    optionUnset.value = 'unset';
+    todoPrioritySelect.appendChild(optionTop);
+    todoPrioritySelect.appendChild(optionMedium);
+    todoPrioritySelect.appendChild(optionLow);
+    todoPrioritySelect.appendChild(optionUnset);
+    todoPriorityLabel.appendChild(todoPrioritySelect);
+    todoPrioritySelect.value = todoObject.priority;
+    todoPrioritySelect.addEventListener('change', () => {
+        todoObject.priority = todoPrioritySelect.value;
+    })
+
+    //project: <select>
+    const todoProjectSelect = document.createElement('select');
+    todoProjectSelect.classList.add('todo-project');
+    const todoProjectLabel = document.createElement('label');
+    todoProjectLabel.textContent = 'Project:';
+    projectList.forEach((project) => {
+        const option = document.createElement('option');
+        option.textContent = project;
+        option.value = project;
+        todoProjectSelect.appendChild(option);
+    })
+    const optionNone = document.createElement('option');
+    optionNone.textContent = 'none';
+    optionNone.value = 'none';
+    todoProjectSelect.appendChild(optionNone);
+    todoProjectLabel.appendChild(todoProjectSelect);
+    todoProjectSelect.value = todoObject.project;
+    todoProjectSelect.addEventListener('change', () => {
+        todoObject.project = todoProjectSelect.value;
+        renderMainContent();
+    })
+
+    //description: hide div
+    const todoDescription = document.createElement('div');
+    todoDescription.classList.add('todo-description', 'hide');
+    todoDescription.textContent = `Description:${todoObject.description}`;
+    
+    //delete icon
+    const deleteTodoBtn = document.createElement('img');
+    deleteTodoBtn.src = deleteIcon;
+    deleteTodoBtn.addEventListener('click', () => {
+        removeTodo(todoObject.title);
+        renderMainContent();
+    })
+
+    //wrap them 
+    wrappedTodoItem.appendChild(todoCheckBoxWrap);
+    wrappedTodoItem.appendChild(todoDuedateLabel);
+    wrappedTodoItem.appendChild(todoPriorityLabel);
+    wrappedTodoItem.appendChild(todoProjectLabel);
+    wrappedTodoItem.appendChild(deleteTodoBtn);
+    wrappedTodoAndDescription.appendChild(wrappedTodoItem);
+    wrappedTodoAndDescription.appendChild(todoDescription);
+
+    //add a eventListener on todo item, taggle the description
+    wrappedTodoItem.addEventListener('click', () => {
+        todoDescription.classList.toggle('hide');
+    })
+
+    //in the todo item, if there is a click component, add a stop propagation eventListener
+    todoProjectSelect.addEventListener('click', stopClick);
+    todoPrioritySelect.addEventListener('click', stopClick);
+    todoCheckBox.addEventListener('click', stopClick);
+    todoDueDate.addEventListener('click', stopClick);
+
+
+    return wrappedTodoAndDescription;
 }
 
 // Inner Function: render todos after each project
@@ -61,6 +182,7 @@ function renderTodosAfterProject(projectName) {
         theProjectPackage.appendChild(wrappedTodoItem);
     })
 }
+
 
 // Inner Function: render all project and related todos in main content
 function renderProjectsAndTodosInMainContent() {
@@ -148,15 +270,19 @@ function createAddProjectDialog() {
     }
 }
 
+let popupListenerRegistered = false;
 //Inner Function: make the add project popup menu close when click outside of it
 function setupProjectPopupMenuOutsideClick(popup, btn) {
+    if (popupListenerRegistered) return;
+    popupListenerRegistered = true;
+
     document.addEventListener('click', (event) => {
-        if (popup.classList.contains('show') &&
-            !popup.contains(event.target) &&
-            !btn.contains(event.target)
-        ) {
-            popup.classList.remove('show');
-        }
+        document.querySelectorAll('.edit-project-popup-menu.show')
+            .forEach(menu => {
+                if(!menu.contains(event.target)) {
+                    menu.classList.remove('show');
+                }
+            })
     })
 }
 
@@ -196,7 +322,8 @@ function renderProjectsInSidebar() {
         popupMenu.appendChild(deleteOptionBtn);
         popupMenu.appendChild(renameOptionBtn);
 
-        moreActionImg.addEventListener('click', () => {
+        moreActionImg.addEventListener('click', (e) => {
+            e.stopPropagation();
             popupMenu.classList.toggle('show');
         })
         //(add the popupMenu to the nextsibling of porjectWrap)
@@ -262,6 +389,7 @@ function renderMainContent() {
     mainContentafterAddBtn.innerHTML = '';
     renderProjectsAndTodosInMainContent();
     renderTodosWithoutProject();
+    logData();
 }
 
-export {content, todoInputDialog, todoInputForm, addNewTodoBtn, showProjectList, renderMainContent, renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog};
+export {content, todoInputDialog, todoInputForm, addNewTodoBtn, showProjectList, renderMainContent, renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent};

@@ -1,7 +1,7 @@
 import {todoList, addTodo, removeTodo, assignTodoProject} from "./todo.js";
 import {projectList, addProject, removeProject} from "./project.js";
 import {updateOriData, saveData, loadData} from "./storage.js";
-import {content, todoInputDialog, addNewTodoBtn, todoInputForm, showProjectList, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog} from "./dom.js";
+import {content, todoInputDialog, addNewTodoBtn, todoInputForm, showProjectList, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent} from "./dom.js";
 
 
 //Inner Function: sava app data to storage
@@ -104,13 +104,12 @@ function loadPage() {
             createAddProjectBtn();
         }
     })
+    const sidebarProjectBtn = document.querySelector('sidebar-project');
+    sidebarProjectBtn.addEventListener('click', () => {
+        renderProjectsAndTodosInMainContent();
+    })//to be containued....
 
 
-
-
-
-    //for test
-    console.log(updateOriData());
 }
 
 
