@@ -61,35 +61,105 @@ function createTodoItem(todoObject) {
     const wrappedTodoItem = document.createElement('div');
     wrappedTodoItem.classList.add('todo-wrap');
 
+    //Inner Function: render todo title with a checkbox(isDone)
+    function renderTodoTitle(todoCheckBoxWrap, todoObject) {
+        todoCheckBoxWrap.replaceChildren();
+        const todoCheckBox = document.createElement('input');
+        todoCheckBox.type = 'checkbox';
+        todoCheckBox.classList.add('todo-isDone-value');
+        todoCheckBoxWrap.classList.add('todo-isDone-item');
+        todoCheckBox.checked = todoObject.isDone;
+        todoCheckBox.addEventListener('change', () => {
+            todoObject.isDone = todoCheckBox.checked;//change the data, dont need to rerender it now, since the status is matched
+            updateTodoItemColor();
+        });
+        todoCheckBox.addEventListener('click', stopClick);//stop propagation
+        const todoTitle = document.createElement('p');
+        todoTitle.textContent = todoObject.title;
+        todoTitle.classList.add('todo-title');
+        todoTitle.id = `${todoObject.title}-title`
+        todoCheckBoxWrap.appendChild(todoCheckBox);
+        todoCheckBoxWrap.appendChild(todoTitle);
+
+        todoTitle.addEventListener('click', () => renderTodoTitleInput(todoCheckBoxWrap, todoObject));
+    }
+
+    //Inner Function: 
+    function renderTodoTitleInput(todoCheckBoxWrap, todoObject) {
+        todoCheckBoxWrap.replaceChildren();
+        const changeTodoTitleInput = document.createElement('input');
+        todoCheckBoxWrap.appendChild(changeTodoTitleInput);
+        changeTodoTitleInput.classList.add('change-todo-tite-input');
+
+        const finishEditing = () => {
+            const newValue = changeTodoTitleInput.value.trim();
+            if (newValue) {
+                todoObject.title = newValue;
+            }
+            renderTodoTitle(todoCheckBoxWrap, todoObject);
+        }
+
+        changeTodoTitleInput.addEventListener('click', stopClick);
+        changeTodoTitleInput.addEventListener('blur', finishEditing);
+        changeTodoTitleInput.addEventListener('change', finishEditing);
+
+    }
+
     //isDone: checkbox & title: title
     const todoCheckBoxWrap = document.createElement('div');
-    const todoCheckBox = document.createElement('input');
-    todoCheckBox.type = 'checkbox';
-    todoCheckBox.classList.add('todo-isDone-check');
-    todoCheckBox.checked = todoObject.isDone;
-    todoCheckBox.addEventListener('change', () => {
-        todoObject.isDone = todoCheckBox.checked;//change the data, dont need to rerender it now, since the status is matched
-    })
-    const todoTitle = document.createElement('p');
-    todoTitle.textContent = todoObject.title;
-    todoTitle.classList.add('todo-title');
-    todoTitle.id = `${todoObject.title}-title`
-    todoCheckBoxWrap.appendChild(todoCheckBox);
-    todoCheckBoxWrap.appendChild(todoTitle);
+    renderTodoTitle(todoCheckBoxWrap, todoObject);
+    
+    //Inner Function: 
+    function renderDuedate(todoDuedateWrap, todoObject) {
+        todoDuedateWrap.replaceChildren();
+        const todoDuedateLabel = document.createElement('label');
+        todoDuedateLabel.classList.add('todo-duedate-item');
+        const todoDuedateLabelP = document.createElement('p');
+        todoDuedateLabelP.textContent = 'Duedate:'
+        todoDuedateLabel.appendChild(todoDuedateLabelP)
+        const todoDuedate = document.createElement('div');
+        todoDuedate.textContent = todoObject.dueDate;
+        todoDuedateLabel.appendChild(todoDuedate);
+        todoDuedate.classList.add('todo-dueDate');
+        todoDuedateWrap.appendChild(todoDuedateLabel);
+        todoDuedate.addEventListener('click', () => renderDuedateInput(todoDuedateWrap, todoObject));
+    }
+
+    //Inner Function: 
+    function renderDuedateInput(todoDuedateWrap, todoObject) {
+        todoDuedateWrap.replaceChildren();
+        const todoDuedateLabel = document.createElement('label');
+        todoDuedateLabel.textContent = 'Duedate:'
+        todoDuedateLabel.classList.add('todo-duedate-item');
+        const todoDuedateInput = document.createElement('input');
+        todoDuedateInput.type = 'date';
+        todoDuedateInput.value = todoObject.dueDate || '';
+        todoDuedateLabel.appendChild(todoDuedateInput);
+        todoDuedateWrap.appendChild(todoDuedateLabel);
+        const finishEditing = () => {
+            if(todoDuedateInput.value) {
+                todoObject.dueDate = todoDuedateInput.value;
+            }
+            renderDuedate(todoDuedateWrap, todoObject);
+        };
+        todoDuedateInput.addEventListener('change', finishEditing);
+        todoDuedateInput.addEventListener('blur', finishEditing);
+        todoDuedateInput.addEventListener('click', stopClick);
+    }
 
     //dueDate:date
-    const todoDueDate = document.createElement('div');
-    todoDueDate.textContent = todoObject.dueDate;
-    todoDueDate.classList.add('todo-dueDate');
-    const todoDuedateLabel = document.createElement('label');
-    todoDuedateLabel.textContent = 'duedate:'
-    todoDuedateLabel.appendChild(todoDueDate);
+    const todoDuedateWrap = document.createElement('div');
+    todoDuedateWrap.classList.add('todo-duedate-item-wrap');
+    renderDuedate(todoDuedateWrap, todoObject);
 
     //priority: <select>
     const todoPrioritySelect = document.createElement('select');
     todoPrioritySelect.classList.add('todo-priority');
     const todoPriorityLabel = document.createElement('label');
-    todoPriorityLabel.textContent = 'Priority:';
+    const todoPriorityLabelP = document.createElement('p');
+    todoPriorityLabelP.textContent = 'Priority:';
+    todoPriorityLabel.appendChild(todoPriorityLabelP);
+    todoPriorityLabel.classList.add('todo-priority-item');
     const optionTop = document.createElement('option');
     optionTop.textContent = 'top';
     optionTop.value = 'top';
@@ -110,13 +180,17 @@ function createTodoItem(todoObject) {
     todoPrioritySelect.value = todoObject.priority;
     todoPrioritySelect.addEventListener('change', () => {
         todoObject.priority = todoPrioritySelect.value;
+        updateTodoItemColor();
     })
 
     //project: <select>
     const todoProjectSelect = document.createElement('select');
     todoProjectSelect.classList.add('todo-project');
     const todoProjectLabel = document.createElement('label');
-    todoProjectLabel.textContent = 'Project:';
+    todoProjectLabel.classList.add('todo-project-item');
+    const todoProjectLabelP = document.createElement('p');
+    todoProjectLabelP.textContent = 'Project:';
+    todoProjectLabel.appendChild(todoProjectLabelP);
     projectList.forEach((project) => {
         const option = document.createElement('option');
         option.textContent = project;
@@ -137,19 +211,32 @@ function createTodoItem(todoObject) {
     //description: hide div
     const todoDescription = document.createElement('div');
     todoDescription.classList.add('todo-description', 'hide');
-    todoDescription.textContent = `Description:${todoObject.description}`;
+    todoDescription.innerHTML = `Description:<br>${todoObject.description}`;
     
     //delete icon
     const deleteTodoBtn = document.createElement('img');
+    deleteTodoBtn.classList.add('delete-item');
     deleteTodoBtn.src = deleteIcon;
     deleteTodoBtn.addEventListener('click', () => {
-        removeTodo(todoObject.title);
-        renderMainContent();
+        //call the dialog to confirm first
+        const deleteTodoWarningDialog = document.querySelector('#delete-todo-warning-dialog');
+        const deleteTodoYesBtn = document.querySelector('#delete-todo-yes-btn');
+        const deleteTodoCancelBtn = document.querySelector('#delete-todo-cancel-btn');
+        deleteTodoWarningDialog.showModal();
+        deleteTodoYesBtn.addEventListener('click', () => {
+            deleteTodoWarningDialog.close();
+            removeTodo(todoObject.title);
+            renderMainContent();
+        })
+        deleteTodoCancelBtn.addEventListener('click', () => {
+            deleteTodoWarningDialog.close();
+        })
     })
+    deleteTodoBtn.addEventListener('click', stopClick);
 
     //wrap them 
     wrappedTodoItem.appendChild(todoCheckBoxWrap);
-    wrappedTodoItem.appendChild(todoDuedateLabel);
+    wrappedTodoItem.appendChild(todoDuedateWrap);
     wrappedTodoItem.appendChild(todoPriorityLabel);
     wrappedTodoItem.appendChild(todoProjectLabel);
     wrappedTodoItem.appendChild(deleteTodoBtn);
@@ -164,11 +251,58 @@ function createTodoItem(todoObject) {
     //in the todo item, if there is a click component, add a stop propagation eventListener
     todoProjectSelect.addEventListener('click', stopClick);
     todoPrioritySelect.addEventListener('click', stopClick);
-    todoCheckBox.addEventListener('click', stopClick);
-    todoDueDate.addEventListener('click', stopClick);
+    todoDuedateWrap.addEventListener('click', stopClick);
 
+    updateTodoItemColor();
 
     return wrappedTodoAndDescription;
+}
+
+// Inner Function: update todo item's color reagrding the priority and isDone
+function updateTodoItemColor() {
+    const theTodoItems = document.querySelectorAll('.todo-wrap');
+    theTodoItems.forEach(theTodoItem => {
+        const thePriority = theTodoItem.querySelector('.todo-priority').value;
+        const theIsDone = theTodoItem.querySelector('.todo-isDone-value').checked;
+        const theDeleteBtn = theTodoItem.querySelector('.delete-item');
+        let theBackgroundColor;
+        let theColor;
+        let theFontWeight;
+        let theDeleteBtnColor;
+        if (theIsDone === true) {
+            theBackgroundColor = '#95a5a6';
+        } else {
+            switch(thePriority) {
+                case 'top':
+                    theBackgroundColor = '#e74c3c';
+                    theColor = 'white';
+                    theFontWeight = 'bolder';
+                    theDeleteBtnColor = 'invert(1)'
+                    break;
+                case 'medium':
+                    theBackgroundColor = '#f39c12';
+                    theColor = 'white';
+                    theFontWeight = 'bolder';
+                    theDeleteBtnColor = 'invert(1)'
+                    break;
+                case 'low':
+                    theBackgroundColor = '#2ecc71';
+                    theColor = 'white';
+                    theFontWeight = 'bolder';
+                    theDeleteBtnColor = 'invert(1)'
+                    break;
+                default:
+                    theBackgroundColor = 'white';
+                    theColor = 'black';
+                    theFontWeight = 'normal';
+                    theDeleteBtnColor = ''
+            }
+        }
+        theTodoItem.style.backgroundColor = theBackgroundColor;
+        theTodoItem.style.color = theColor;
+        theTodoItem.style.fontWeight = theFontWeight;
+        theDeleteBtn.style.filter = theDeleteBtnColor;
+    })
 }
 
 // Inner Function: render todos after each project
@@ -180,7 +314,9 @@ function renderTodosAfterProject(projectName) {
         const wrappedTodoItem = createTodoItem(thisProjectsTodo);
         const theProjectPackage = document.querySelector(`#${projectName.replaceAll(' ', '-')}-todo-wrap`);
         theProjectPackage.appendChild(wrappedTodoItem);
-    })
+    });
+    updateTodoItemColor();
+
 }
 
 
@@ -192,6 +328,7 @@ function renderProjectsAndTodosInMainContent() {
         renderTodosAfterProject(project);
     })
 }
+
 
 // Inner Function: render the todos without project
 function renderTodosWithoutProject() {
@@ -206,6 +343,7 @@ function renderTodosWithoutProject() {
 
     todoListWithoutProject.forEach(todoWithoutProject => {
         const wrappedTodoItemWithoutProject = createTodoItem(todoWithoutProject);
+        wrappedTodoItemWithoutProject.classList.add('the-todo-without-project');
         mainContentafterAddBtn.appendChild(wrappedTodoItemWithoutProject);
     })
 }
@@ -227,6 +365,7 @@ function createAddProjectBtn() {
 
     //make the format consistent with other projects in sidebar
     addProjectBtnWrap.classList.add('project-in-sidebar');
+    addProjectBtnWrap.classList.add('animate-btn');
     addProjectBtnWrap.id = 'add-project-btn';
     addProjectIcon.src = addIcon;
     addProjectP.textContent = 'Add Project';
@@ -389,7 +528,9 @@ function renderMainContent() {
     mainContentafterAddBtn.innerHTML = '';
     renderProjectsAndTodosInMainContent();
     renderTodosWithoutProject();
+    updateTodoItemColor();
+    //for test only:
     logData();
 }
 
-export {content, todoInputDialog, todoInputForm, addNewTodoBtn, showProjectList, renderMainContent, renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent};
+export {content, todoInputDialog, todoInputForm, addNewTodoBtn, showProjectList, renderMainContent, renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor};

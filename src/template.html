@@ -28,6 +28,7 @@
             <img src="./imgs/task_alt_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" alt="task">
             <p>To Do</p>
         </div>
+
         <div class="nav-btn animate-btn" id="sidebar-canlender">
             <img src="./imgs/calendar_month_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" alt="canlendar">
             <p>Canlender</p>
@@ -93,10 +94,22 @@
         
         <button aria-label="close" id="close-dialog-btn">✕</button>    
         </form>
-
     </dialog>
 
-
+    <dialog id="delete-todo-warning-dialog">
+        <div id="delete-todo-warning-wrap">
+            <div id="delete-todo-warning-text-wrap">
+                <img src="./imgs/warning_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" id="delete-todo-warning-sign">
+                <span id="delete-todo-warning">
+                    If you delete the todo, it can not be restored. Are you sure to delete it?
+                </span>
+            </div>
+            <div id="delete-todo-btns">
+                <button id="delete-todo-yes-btn">Yes</button>
+                <button id="delete-todo-cancel-btn">cancel</button>
+            </div>
+        </div>
+    </dialog>
 
 
     </div>

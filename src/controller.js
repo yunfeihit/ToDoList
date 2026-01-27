@@ -1,7 +1,7 @@
 import {todoList, addTodo, removeTodo, assignTodoProject} from "./todo.js";
 import {projectList, addProject, removeProject} from "./project.js";
 import {updateOriData, saveData, loadData} from "./storage.js";
-import {content, todoInputDialog, addNewTodoBtn, todoInputForm, showProjectList, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent} from "./dom.js";
+import {content, todoInputDialog, addNewTodoBtn, todoInputForm, showProjectList, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor} from "./dom.js";
 
 
 //Inner Function: sava app data to storage
@@ -54,8 +54,13 @@ todoInputDialog.addEventListener('close', () => {
     renderMainContent();
 
 })
+//--------------- new todo dialog ----------------------
 
-//Function: show project list when click the <input>
+
+
+
+
+//Function: show project list when click the project <input>
 function showProjectListWhenInputTodo() {
     projectList.forEach(item => {
         const newRenderProject = document.createElement('option');
@@ -64,10 +69,18 @@ function showProjectListWhenInputTodo() {
     })
 }
 
-
-
-
-
+//Inner Function: (to be used as an eventListener) fold all todo items, only shows the project 
+function foldAllTodoItems() {
+    const projectWraps = document.querySelectorAll('.project-todo-wrap');
+    projectWraps.forEach(projectWrap => {
+        const todosAfterThisProjects = projectWrap.querySelectorAll('.todo-and-description-wrap');
+        todosAfterThisProjects.forEach(item => item.remove());
+    });
+    const theEmptyBlock = document.querySelector('#empty-block');
+    theEmptyBlock.remove();
+    const theTodoWithoutProjects = document.querySelectorAll('.the-todo-without-project');
+    theTodoWithoutProjects.forEach(item => item.remove());
+}
 
 
 //Main Function:
@@ -85,6 +98,7 @@ function loadPage() {
     const addProjectButton = createAddProjectBtn(addProjectContainer);
 
     //if it a 'addProjectButton' and click on it, switch to the 'addProjectDialog'
+    let ifMainContentIsExpand = true;
     addProjectContainer.addEventListener('click', (event) => {
         if (event.target.closest('#add-project-btn')) {
             const theAddProjectDialogObject = createAddProjectDialog();
@@ -104,12 +118,22 @@ function loadPage() {
             createAddProjectBtn();
         }
     })
-    const sidebarProjectBtn = document.querySelector('sidebar-project');
+    const sidebarProjectBtn = document.querySelector('#sidebar-project');
     sidebarProjectBtn.addEventListener('click', () => {
-        renderProjectsAndTodosInMainContent();
-    })//to be containued....
+        if (ifMainContentIsExpand) {
+            foldAllTodoItems();
+            ifMainContentIsExpand = false;
+        } else {
+            return;
+        }       
+    });
 
-
+    const sidebarTodoBtn = document.querySelector('#sidebar-todo');
+    sidebarTodoBtn.addEventListener('click', () => {
+        renderMainContent();
+        ifMainContentIsExpand = true;
+    });
+    updateTodoItemColor();
 }
 
 
