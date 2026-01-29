@@ -120,6 +120,8 @@ function loadPage() {
     })
     const sidebarProjectBtn = document.querySelector('#sidebar-project');
     sidebarProjectBtn.addEventListener('click', () => {
+        renderMainContent();
+        ifMainContentIsExpand = !ifMainContentIsExpand ? false : true;
         if (ifMainContentIsExpand) {
             foldAllTodoItems();
             ifMainContentIsExpand = false;
@@ -134,6 +136,16 @@ function loadPage() {
         ifMainContentIsExpand = true;
     });
     updateTodoItemColor();
+
+    const sideBarCanlenderBtn = document.querySelector('#sidebar-canlender');
+    const mainContentafterAddBtn = document.querySelector('#main-content-after-addBtn');
+    sideBarCanlenderBtn.addEventListener('click', () => {
+        mainContentafterAddBtn.innerHTML = '';
+        const tobeContinued = document.createElement('div');
+        tobeContinued.id = 'tobeContinued';
+        tobeContinued.textContent = 'to be continued...'
+        mainContentafterAddBtn.appendChild(tobeContinued);
+    })
 }
 
 

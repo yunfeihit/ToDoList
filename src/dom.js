@@ -1,5 +1,5 @@
 import {projectList, addProject, removeProject, renameProject} from "./project.js"
-import {todoList, removeTodo} from "./todo.js";
+import {todoList, removeTodo, returnTodoCountDown} from "./todo.js";
 import {logData} from "./storage.js";
 import rightArrow from "./imgs/arrow_right_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import downArrow from "./imgs/arrow_down_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
@@ -51,6 +51,23 @@ function createProjectItem(projectName) {
 // Inner Function: stop event propagation: 
 const stopClick = (e) => e.stopPropagation();
 
+// Inner Funciton: add a warning dialog before callback function
+function popupWarningDialog(callbackfunction) {
+    const deleteTodoWarningDialog = document.querySelector('#delete-warning-dialog');
+    const deleteTodoYesBtn = document.querySelector('#delete-yes-btn');
+    const deleteTodoCancelBtn = document.querySelector('#delete-cancel-btn');
+    deleteTodoWarningDialog.showModal();
+    deleteTodoYesBtn.addEventListener('click', () => {
+        deleteTodoWarningDialog.close();
+        callbackfunction();
+        // removeTodo(todoObject.title);
+        // renderMainContent();
+    }, {once: true})
+    deleteTodoCancelBtn.addEventListener('click', () => {
+        deleteTodoWarningDialog.close();
+    }, {once: true})
+}
+
 // Inner Function: create todo item
 function createTodoItem(todoObject) {
     //wrap: div (wrap todo-item and the description)
@@ -89,7 +106,7 @@ function createTodoItem(todoObject) {
         todoCheckBoxWrap.replaceChildren();
         const changeTodoTitleInput = document.createElement('input');
         todoCheckBoxWrap.appendChild(changeTodoTitleInput);
-        changeTodoTitleInput.classList.add('change-todo-tite-input');
+        changeTodoTitleInput.classList.add('change-todo-title-input');
 
         const finishEditing = () => {
             const newValue = changeTodoTitleInput.value.trim();
@@ -118,7 +135,7 @@ function createTodoItem(todoObject) {
         todoDuedateLabelP.textContent = 'Duedate:'
         todoDuedateLabel.appendChild(todoDuedateLabelP)
         const todoDuedate = document.createElement('div');
-        todoDuedate.textContent = todoObject.dueDate;
+        todoDuedate.textContent = todoObject.dueDate ? todoObject.dueDate.toISOString().split('T')[0] : "---- -- --";
         todoDuedateLabel.appendChild(todoDuedate);
         todoDuedate.classList.add('todo-dueDate');
         todoDuedateWrap.appendChild(todoDuedateLabel);
@@ -133,12 +150,14 @@ function createTodoItem(todoObject) {
         todoDuedateLabel.classList.add('todo-duedate-item');
         const todoDuedateInput = document.createElement('input');
         todoDuedateInput.type = 'date';
-        todoDuedateInput.value = todoObject.dueDate || '';
+        todoDuedateInput.value = todoObject.dueDate
+            ? todoObject.dueDate.toISOString().split('T')[0]
+            : '';   
         todoDuedateLabel.appendChild(todoDuedateInput);
         todoDuedateWrap.appendChild(todoDuedateLabel);
         const finishEditing = () => {
             if(todoDuedateInput.value) {
-                todoObject.dueDate = todoDuedateInput.value;
+                todoObject.dueDate = new Date(todoDuedateInput.value);
             }
             renderDuedate(todoDuedateWrap, todoObject);
         };
@@ -209,28 +228,62 @@ function createTodoItem(todoObject) {
     })
 
     //description: hide div
-    const todoDescription = document.createElement('div');
-    todoDescription.classList.add('todo-description', 'hide');
-    todoDescription.innerHTML = `Description:<br>${todoObject.description}`;
+    const todoDescriptionWrap = document.createElement('div');
+        //Inner Function: render description 
+        function renderDescription(todoDescriptionWrap, todoObject) {
+            todoDescriptionWrap.replaceChildren();
+            const todoDescription = document.createElement('div');
+            todoDescriptionWrap.appendChild(todoDescription);    
+            todoDescriptionWrap.classList.add('todo-description', 'hide');
+            todoDescription.innerHTML = `Description:<br>${todoObject.description}`;
+            todoDescription.addEventListener('click', () => renderDescriptionInput(todoDescriptionWrap, todoObject));
+        }
+        function renderDescriptionInput(todoDescriptionWrap, todoObject) {
+            todoDescriptionWrap.replaceChildren();
+            const todoDescriptionInputTitle = document.createElement('div');
+            todoDescriptionInputTitle.textContent = 'Description:';
+            const todoDescriptionInput = document.createElement('input');
+            todoDescriptionInput.classList.add('todo-description-input');
+            todoDescriptionInput.type = 'text';
+            todoDescriptionInput.value = todoObject.description;
+            const finishEditing = () => {
+                const newDescription = todoDescriptionInput.value.trim();
+                if (newDescription) {
+                    todoObject.description = newDescription;
+                    renderDescription(todoDescriptionWrap, todoObject);
+                    todoDescriptionWrap.classList.toggle('hide');
+                }
+            };
+            todoDescriptionInput.addEventListener('blur', finishEditing);
+            todoDescriptionInput.addEventListener('change', finishEditing);
+            todoDescriptionInput.addEventListener('click', stopClick);
+            todoDescriptionWrap.appendChild(todoDescriptionInputTitle);
+            todoDescriptionWrap.appendChild(todoDescriptionInput);
+        }
+    renderDescription(todoDescriptionWrap, todoObject);
     
+    // countDown :date
+    const todoCountdownWrap = document.createElement('div');
+    todoCountdownWrap.classList.add('todo-countdown-item')
+    const todoCountdownLabel = document.createElement('label');
+    const todoCountdown = document.createElement('div');
+    todoCountdownWrap.appendChild(todoCountdownLabel);
+    todoCountdownLabel.textContent = 'Countdown:';
+    todoCountdownWrap.appendChild(todoCountdown);
+    todoCountdown.textContent = returnTodoCountDown(todoObject);
+
+
     //delete icon
     const deleteTodoBtn = document.createElement('img');
     deleteTodoBtn.classList.add('delete-item');
     deleteTodoBtn.src = deleteIcon;
     deleteTodoBtn.addEventListener('click', () => {
-        //call the dialog to confirm first
-        const deleteTodoWarningDialog = document.querySelector('#delete-todo-warning-dialog');
-        const deleteTodoYesBtn = document.querySelector('#delete-todo-yes-btn');
-        const deleteTodoCancelBtn = document.querySelector('#delete-todo-cancel-btn');
-        deleteTodoWarningDialog.showModal();
-        deleteTodoYesBtn.addEventListener('click', () => {
-            deleteTodoWarningDialog.close();
+        //Inner Function: the delete action to callback
+        const removeTodoAction = () => {
             removeTodo(todoObject.title);
             renderMainContent();
-        })
-        deleteTodoCancelBtn.addEventListener('click', () => {
-            deleteTodoWarningDialog.close();
-        })
+        }
+        popupWarningDialog(removeTodoAction);
     })
     deleteTodoBtn.addEventListener('click', stopClick);
 
@@ -239,13 +292,14 @@ function createTodoItem(todoObject) {
     wrappedTodoItem.appendChild(todoDuedateWrap);
     wrappedTodoItem.appendChild(todoPriorityLabel);
     wrappedTodoItem.appendChild(todoProjectLabel);
+    wrappedTodoItem.appendChild(todoCountdownWrap);
     wrappedTodoItem.appendChild(deleteTodoBtn);
     wrappedTodoAndDescription.appendChild(wrappedTodoItem);
-    wrappedTodoAndDescription.appendChild(todoDescription);
+    wrappedTodoAndDescription.appendChild(todoDescriptionWrap);
 
     //add a eventListener on todo item, taggle the description
     wrappedTodoItem.addEventListener('click', () => {
-        todoDescription.classList.toggle('hide');
+        todoDescriptionWrap.classList.toggle('hide');
     })
 
     //in the todo item, if there is a click component, add a stop propagation eventListener
@@ -475,9 +529,12 @@ function renderProjectsInSidebar() {
         //function the delete project button
         //(for dynamic elements, attach event listeners when creating them, not in the controller.js)
         deleteOptionBtn.addEventListener('click', () => {
-            removeProject(project);
-            renderProjectsInSidebar();
-            renderMainContent();
+            const removeProjectAction = () => {
+                removeProject(project);
+                renderProjectsInSidebar();
+                renderMainContent();
+            }
+            popupWarningDialog(removeProjectAction);
         })
 
         //function the rename project button
@@ -529,8 +586,8 @@ function renderMainContent() {
     renderProjectsAndTodosInMainContent();
     renderTodosWithoutProject();
     updateTodoItemColor();
-    //for test only:
-    logData();
 }
+
+
 
 export {content, todoInputDialog, todoInputForm, addNewTodoBtn, showProjectList, renderMainContent, renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor};

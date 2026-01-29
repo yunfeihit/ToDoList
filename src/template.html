@@ -67,11 +67,11 @@
         <form id="todo-input-form" method="dialog">
             <h3 id="todo-input-title">Add a new todo:</h3>
             <label for="title-input" class="todo-input-label">Title:</label>
-            <input type="text" id="title-input" class="todo-input" name="title" placeholder="title for todo">
+            <input type="text" id="title-input" class="todo-input" name="title" placeholder="title for todo" required>
             <label for="des-input" class="todo-input-label">Description:</label>
             <input type="text" id="des-input" class="todo-input" name="description" placeholder="description for todo">
             <div id="date-input-wrap">
-                <label for="date-input" class="todo-input-label">Date:</label>
+                <label for="date-input" class="todo-input-label">DueDate:</label>
                 <input type="date" id="date-input" class="todo-input" name="date" placeholder="due date of todo">
             </div>
             <div id="priority-input-wrap">
@@ -96,18 +96,18 @@
         </form>
     </dialog>
 
-    <dialog id="delete-todo-warning-dialog">
-        <div id="delete-todo-warning-wrap">
-            <div id="delete-todo-warning-text-wrap">
-                <img src="./imgs/warning_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" id="delete-todo-warning-sign">
-                <span id="delete-todo-warning">
-                    If you delete the todo, it can not be restored. Are you sure to delete it?
-                </span>
-            </div>
-            <div id="delete-todo-btns">
-                <button id="delete-todo-yes-btn">Yes</button>
-                <button id="delete-todo-cancel-btn">cancel</button>
-            </div>
+    <dialog id="delete-warning-dialog">
+        <div id="delete-warning-wrap">
+                <div id="delete-warning-wrap-1">
+                    <img src="./imgs/warning_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" id="delete-warning-sign">
+                    <div id="delete-warning">
+                        If you delete, it can not be restored. <br>Are you sure to delete it?
+                    </div>
+                </div>
+                <div id="delete-warning-wrap-2">
+                    <button id="delete-yes-btn">Yes</button>
+                    <button id="delete-cancel-btn">cancel</button>
+                </div>
         </div>
     </dialog>
 
