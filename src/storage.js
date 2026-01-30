@@ -1,7 +1,8 @@
 import {todoList} from "./todo.js";
 import {projectList} from "./project.js";
 
-//when add a todo or project, update the 'oridata'
+// combine all data(todoList and projectList) to an object and return it (to store it later)
+// (should not store severals object or arrays!) 
 function updateOriData() {
     const oriData = {
         todos: todoList,
@@ -12,21 +13,20 @@ function updateOriData() {
 
 const STORAGE_KEY = 'todoAppData';
 
-function saveData(oriData) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(oriData));
+function saveData() {
+    const theOriData = updateOriData(); // must update the data first!
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(theOriData));
 }
 
 function loadData() {
     const jsonData = localStorage.getItem(STORAGE_KEY);
-    return jsonData ? JSON.parse(jsonData) : null;
+    return jsonData ? JSON.parse(jsonData) : null;// 'JSON.parse(null)' is not safe
 }
 
-//test function
+//for test only
 function logData() {
     const theData = updateOriData();
     console.log(theData);
 }
 
-
-
-export {saveData, loadData, updateOriData, logData};
+export {saveData, loadData, logData};

@@ -1,25 +1,8 @@
-import {todoList, addTodo, removeTodo, assignTodoProject} from "./todo.js";
+import {todoList, addTodo, removeTodo} from "./todo.js";
 import {projectList, addProject, removeProject} from "./project.js";
-import {updateOriData, saveData, loadData} from "./storage.js";
-import {content, todoInputDialog, addNewTodoBtn, todoInputForm, showProjectList, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor} from "./dom.js";
+import {saveData, loadData, logData} from "./storage.js";
+import {content, todoInputDialog, todoInputForm, showProjectList, showProjectListAfterSelect, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor} from "./dom.js";
 
-
-//Inner Function: sava app data to storage
-function saveAppData() {
-    const appData = updateOriData();
-    saveData(appData);
-    //Test: log it to see if worked
-    console.log(appData);
-}
-
-//Inner Function : load app data
-function loadAppData() {
-    return loadData();
-}
-
-//--------------- new todo dialog ----------------------
-//add new todo btn eventListener
-addNewTodoBtn.addEventListener('click', () => todoInputDialog.showModal())
 
 //gather new todo information when dialog is closed
 todoInputDialog.addEventListener('close', () => {
@@ -34,7 +17,7 @@ todoInputDialog.addEventListener('close', () => {
     const priority = todoInputForm.elements['priority'].value;
     const project = todoInputForm.elements['project'].value;
 
-    // four steps to store a new todo:
+    // thres steps to store a new todo:
     // 1. make a new todo object
     //('isDone' is not collected here)
     const todoMetaData = {
@@ -47,27 +30,11 @@ todoInputDialog.addEventListener('close', () => {
     // 2. add the new todo object to the todoList
     addTodo(todoMetaData);
     // 3. save app data
-    saveAppData();
-    
+    saveData();
     todoInputForm.reset();
-
     renderMainContent();
-
 })
 //--------------- new todo dialog ----------------------
-
-
-
-
-
-//Function: show project list when click the project <input>
-function showProjectListWhenInputTodo() {
-    projectList.forEach(item => {
-        const newRenderProject = document.createElement('option');
-        newRenderProject.value = item;
-        showProjectList.appendChild(newRenderProject);
-    })
-}
 
 //Inner Function: (to be used as an eventListener) fold all todo items, only shows the project 
 function foldAllTodoItems() {
@@ -86,7 +53,7 @@ function foldAllTodoItems() {
 //Main Function:
 function loadPage() {
     //make the project <input>, only do it once
-    showProjectListWhenInputTodo();
+    showProjectListAfterSelect();
 
     renderMainContent();
 
@@ -109,9 +76,7 @@ function loadPage() {
                 if (theAddProjectDialogObject.addProjectInput.value) {
                     addProject(theAddProjectDialogObject.addProjectInput.value);
                     renderProjectsInSidebar();
-                    renderMainContent();     
-                    //for test
-                    console.log(updateOriData());         
+                    renderMainContent();             
                 }
             })
         } else if (event.target.id === 'cancel-add-project') {
