@@ -1,4 +1,4 @@
-import {todoList} from "./todo.js";
+import {Todo, todoList} from "./todo.js";
 import {projectList} from "./project.js";
 
 // combine all data(todoList and projectList) to an object and return it (to store it later)
@@ -18,10 +18,17 @@ function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(theOriData));
 }
 
+//(return 'rowDataFromStorage', which need to be rehydrated by funciton 'rehydrateData' in controller.js)
 function loadData() {
-    const jsonData = localStorage.getItem(STORAGE_KEY);
-    return jsonData ? JSON.parse(jsonData) : null;// 'JSON.parse(null)' is not safe
+    try {
+        const jsonData = localStorage.getItem(STORAGE_KEY);
+        return jsonData ? JSON.parse(jsonData) : null;// 'JSON.parse(null)' is not safe
+    } catch(err) {
+        console.error("Failed to load data:", err);
+        return null;
+    }
 }
+
 
 //for test only
 function logData() {

@@ -273,6 +273,8 @@ body {
         transform 0.2s ease;
 }
 
+/* .classA.classB(without space) means the element has the two class at the same time */
+/* .classA. classB(with space) means the element has .classB inside element has .classA */
 .edit-project-popup-menu.show {
     opacity: 1;
     transform: translateY(0);

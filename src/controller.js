@@ -1,116 +1,217 @@
-import {todoList, addTodo, removeTodo} from "./todo.js";
+//!Important rules: controller.js can know the dom.js
+import {
+    Todo, 
+    todoList, 
+    addTodo, 
+    // removeTodo,
+    // updateTodoIsdone,
+    // updateTodoTitle,
+    // updateTodoDuedate,
+    // updateTodoPriority,
+    // updateTodoProject,
+    // updateTodoDescription
+} from "./todo.js";
 import {projectList, addProject, removeProject} from "./project.js";
 import {saveData, loadData, logData} from "./storage.js";
-import {content, todoInputDialog, todoInputForm, showProjectList, showProjectListAfterSelect, renderMainContent,  renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor} from "./dom.js";
+import {showProjectListAfterSelect, renderMainContent,  renderProjectsInSidebar,foldAllTodoItems, buildAddProjectComponent, renderCalendarPage, bindTodoDialogClose, bindSidebarProjectBtn, bindSidebarTodoBtn, bindSidebarCalendarBtn} from "./dom.js";
 
-
-//gather new todo information when dialog is closed
-todoInputDialog.addEventListener('close', () => {
-    if(todoInputDialog.returnValue != 'submit') {
-        todoInputForm.reset();
-        return;
-    }    
-
-    const title = todoInputForm.elements['title'].value;
-    const description = todoInputForm.elements['description'].value;
-    const date = todoInputForm.elements['date'].value;
-    const priority = todoInputForm.elements['priority'].value;
-    const project = todoInputForm.elements['project'].value;
-
-    // thres steps to store a new todo:
-    // 1. make a new todo object
-    //('isDone' is not collected here)
-    const todoMetaData = {
-        title: title,
-        description: description,
-        date: date,
-        priority: priority,
-        project: project
-    }
-    // 2. add the new todo object to the todoList
-    addTodo(todoMetaData);
-    // 3. save app data
-    saveData();
-    todoInputForm.reset();
-    renderMainContent();
-})
-//--------------- new todo dialog ----------------------
-
-//Inner Function: (to be used as an eventListener) fold all todo items, only shows the project 
-function foldAllTodoItems() {
-    const projectWraps = document.querySelectorAll('.project-todo-wrap');
-    projectWraps.forEach(projectWrap => {
-        const todosAfterThisProjects = projectWrap.querySelectorAll('.todo-and-description-wrap');
-        todosAfterThisProjects.forEach(item => item.remove());
-    });
-    const theEmptyBlock = document.querySelector('#empty-block');
-    theEmptyBlock.remove();
-    const theTodoWithoutProjects = document.querySelectorAll('.the-todo-without-project');
-    theTodoWithoutProjects.forEach(item => item.remove());
+function isTodoTitleDuplicate(todoMetaData) {
+    return todoList.some(todo => todo.title === todoMetaData.title);
 }
 
+function handleTodoSubmit(todoMetaData) {
+    if (isTodoTitleDuplicate(todoMetaData)) {
+        alert('This todo title already exist!');
+        return false;
+    };
+    addTodo(todoMetaData);
+    saveData();
+    renderMainContent();
+}
+
+//(rehydrate data from 'JSON.parse(jsonData)', in which todo si turn to plain object, object is fine)
+function rehydrateData(rawDataFromStorage) {
+    if (!rawDataFromStorage) return null;
+    const rehydratedTodos = rawDataFromStorage.todos.map(rowTodo => 
+        new Todo(
+            rowTodo.title,
+            rowTodo.description,
+            rowTodo.dueDate,
+            rowTodo.priority,
+            rowTodo.isDone,
+            rowTodo.project,
+            rowTodo.id
+        )
+    );
+    const theRehydratedData = {
+        todos: rehydratedTodos,
+        projects: rawDataFromStorage.projects
+    };
+    return theRehydratedData;
+}
+
+function bootstrapApp() {
+    const savedData = loadData();
+
+    todoList.length = 0;
+    projectList.length = 0;
+
+    if(savedData) {
+        const rehydrateddata = rehydrateData(savedData);
+        todoList.push(...rehydrateddata.todos);
+        projectList.push(...rehydrateddata.projects)
+
+        // savedData.projects.forEach(project => {
+        //     projectList.push(project);
+        // })
+        // savedData.todos.forEach(todo => {
+        //     todoList.push(
+        //         new Todo(
+        //             todo.title,
+        //             todo.description,
+        //             todo.dueDate,
+        //             todo.priority,
+        //             todo.isDone,
+        //             todo.project,
+        //             todo.id
+        //        )
+        //     )
+        // })   
+    } else {
+        //add some project examples to show them in the first loading page
+        projectList.push(
+            'live',
+            'learn JS'
+        );
+        //add some todo examples to shows them in the first loading page
+        todoList.push(
+            new Todo(
+                'be happy', 
+                'the most important job ever', 
+                '2226-12-31', 
+                'top', 
+                false, 
+                'live'
+            ),
+            new Todo(
+                'eat', 
+                'body is a temple', 
+                '2226-12-31', 
+                'medium'
+            ),
+            new Todo(
+                'learn object', 
+                'object is the basic concept in JS', 
+                '2025-12-31', 
+                'medium', 
+                true, 
+                "learn JS")
+        )
+    }
+}
+
+// function handleAddProjectBtn(addProjectValueFromInput) {
+//     if (addProjectValueFromInput) {
+//         const success = addProject(addProjectValueFromInput);
+//         if (!success) alert('This project already exist!');
+//         renderProjectsInSidebar();
+//         renderMainContent();             
+//     }
+// }
+
+
+function handleSidebarProjectBtn(appState) {
+    renderMainContent();
+    if (appState.ifMainContentIsExpand) {
+        foldAllTodoItems();
+        appState.ifMainContentIsExpand = false;
+    } else {
+        return;
+    } 
+}
+
+function handleSidebarTodoBtn(appState) {
+    renderMainContent();
+    appState.ifMainContentIsExpand = true;
+}
+
+function handleSidebarCalendarBtn() {
+    renderCalendarPage();
+}
+
+function bindAddProjectBtn(addProjectBtn, handler) {
+    addProjectBtn.addEventListener('click', handler)
+}
+
+function handleAddProjectBtn(newProjectInput) {
+    if (newProjectInput) {
+        const success = addProject(newProjectInput);
+        if (!success) alert('This project already exist!');
+        renderProjectsInSidebar();
+        renderMainContent();             
+    }
+}
+
+function onAddProject(newProjectName) {
+    if (!newProjectName) return;
+
+    const success = addProject(newProjectName);
+    if(!success) alert('This projcet already exist!');
+
+    renderProjectsInSidebar();
+    renderMainContent();
+}
+
+function handleTodoCheckboxClick(todoObject, newIsdone) {
+    todoObject.isDone = newIsdone;
+}
+
+function handleTodoInputChanged(todoObject, newTitle) {
+    todoObject.title = newTitle;
+}
+
+function handleTodoDuedateChanged(todoObject, newDuedateValue) {
+    const theNewDuedate = new Date(newDuedateValue);
+    todoObject.dueDate = theNewDuedate;
+}
+
+function handleTodoPriorityChanged(todoObject, newPriority) {
+    todoObject.priority = newPriority;
+}
+
+function handleTodoProjectChanged(todoObject, newProject) {
+    todoObject.project = newProject;
+}
+
+function handleTodoDescriptionChanged(todoObject, newDescription) {
+    todoObject.description = newDescription;
+}
+
+const todoHandlers = {
+    onCheckboxToggle: handleTodoCheckboxClick,
+    onTitleChange: handleTodoInputChanged,
+    onDuedataChange: handleTodoDuedateChanged,
+    onPrioirtyChange: handleTodoPriorityChanged,
+    onProjectChange: handleTodoProjectChanged,
+    onDescriptionChange: handleTodoDescriptionChanged
+}
 
 //Main Function:
 function loadPage() {
-    //make the project <input>, only do it once
+    //initialize:
+    bootstrapApp();
+    //todo input dialog:
     showProjectListAfterSelect();
-
-    renderMainContent();
-
-    //render projects in sidebar
+    bindTodoDialogClose(handleTodoSubmit);
+    //main content:
+    renderMainContent(todoHandlers);
+    //sidebar:
     renderProjectsInSidebar();
- 
-    const addProjectContainer = document.querySelector('#add-project-container');
-    //put the addProjectBtn in the placeHolder 'add-project-container' first
-    const addProjectButton = createAddProjectBtn(addProjectContainer);
-
-    //if it a 'addProjectButton' and click on it, switch to the 'addProjectDialog'
-    let ifMainContentIsExpand = true;
-    addProjectContainer.addEventListener('click', (event) => {
-        if (event.target.closest('#add-project-btn')) {
-            const theAddProjectDialogObject = createAddProjectDialog();
-
-            //add eventListener on the 'add' button
-            const addProjectButton = theAddProjectDialogObject.addProjectButton;
-            addProjectButton.addEventListener('click', () => {
-                if (theAddProjectDialogObject.addProjectInput.value) {
-                    addProject(theAddProjectDialogObject.addProjectInput.value);
-                    renderProjectsInSidebar();
-                    renderMainContent();             
-                }
-            })
-        } else if (event.target.id === 'cancel-add-project') {
-            createAddProjectBtn();
-        }
-    })
-    const sidebarProjectBtn = document.querySelector('#sidebar-project');
-    sidebarProjectBtn.addEventListener('click', () => {
-        renderMainContent();
-        ifMainContentIsExpand = !ifMainContentIsExpand ? false : true;
-        if (ifMainContentIsExpand) {
-            foldAllTodoItems();
-            ifMainContentIsExpand = false;
-        } else {
-            return;
-        }       
-    });
-
-    const sidebarTodoBtn = document.querySelector('#sidebar-todo');
-    sidebarTodoBtn.addEventListener('click', () => {
-        renderMainContent();
-        ifMainContentIsExpand = true;
-    });
-    updateTodoItemColor();
-
-    const sideBarCanlenderBtn = document.querySelector('#sidebar-canlender');
-    const mainContentafterAddBtn = document.querySelector('#main-content-after-addBtn');
-    sideBarCanlenderBtn.addEventListener('click', () => {
-        mainContentafterAddBtn.innerHTML = '';
-        const tobeContinued = document.createElement('div');
-        tobeContinued.id = 'tobeContinued';
-        tobeContinued.textContent = 'to be continued...'
-        mainContentafterAddBtn.appendChild(tobeContinued);
-    })
+    buildAddProjectComponent(onAddProject);
+    const appState = {ifMainContentIsExpand: true};//(!!improtant: should not use a variable like: 'let ifMainContentIsExpand = ture', since only the copy of varible will be changed inside a funcion. using object will be the reference, change the status directlly)
+    bindSidebarProjectBtn(() => handleSidebarProjectBtn(appState)); 
+    bindSidebarTodoBtn(() => handleSidebarTodoBtn(appState));
+    bindSidebarCalendarBtn(handleSidebarCalendarBtn);
 }
 
 

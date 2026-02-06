@@ -8,12 +8,13 @@ class Todo {
         dueDate, 
         priority, 
         isDone = false, 
-        project = null
+        project = null,
+        id = crypto.randomUUID()
     ) {
         this.title = title;
         this.description = description;
         // validate dueDate: 
-        // (1) must be 'Date' instance 
+        // (1) must be 'Date' instance. if not, turn it
         // (2) null is null(not new Date(0))
         if (!dueDate) {
             this.dueDate = null
@@ -23,61 +24,41 @@ class Todo {
         this.priority = priority;
         this.isDone = isDone;
         this.project = project;
+        this.id = id;
     }
 }
 
 const todoList = [];
 
-//add some todo examples to shows them in the first loading page
-const todoExample1 = new Todo(
-    'be happy', 
-    'the most important job ever', 
-    '2226-12-31', 
-    'top', 
-    false, 
-    'live'
-);
-const todoExample2 = new Todo(
-    'eat', 
-    'body is a temple', 
-    '2226-12-31', 
-    'medium'
-);
-const todoExample3 = new Todo(
-    'learn object', 
-    'object is the basic concept in JS', 
-    '2025-12-31', 
-    'medium', 
-    true, 
-    "learn JS");
-todoList.push(
-    todoExample1, 
-    todoExample2, 
-    todoExample3
-);
-
 //'todoMetaData' is an object collected from the dialog DOM(it doesnt has a 'isDone' argument to pass, since the logic that you cannot create a todo that already done)
 function addTodo(todoMetaData) {
-    const newTodo = new Todo(
-        todoMetaData.title,
-        todoMetaData.description,
-        todoMetaData.date,  //duedate
-        todoMetaData.priority,
-        false, //for default parameter: 'isDone'
-        todoMetaData.project
-    );
-    todoList.push(newTodo);
+    if (todoList.some(todo => todo.title === todoMetaData)) {
+        console.warn('Todo title is already exist!')
+        return false;
+    } else {
+        const newTodo = new Todo(
+            todoMetaData.title,
+            todoMetaData.description,
+            todoMetaData.date,  //duedate
+            todoMetaData.priority,
+            false, //for default parameter: 'isDone'
+            todoMetaData.project
+        );
+        todoList.push(newTodo);
+        return true;
+    }
+    
 }
 
-function removeTodo(todoName) {
-    const theIndex = todoList.findIndex(obj => obj.title === todoName);
+function removeTodo(todoId) {
+    const theIndex = todoList.findIndex(obj => obj.id === todoId);
     if (theIndex === -1) return;//if cant find the name, do nothing
     todoList.splice(theIndex, 1);
 }
 
 function returnTodoCountDown (todoObject) {
     if (!todoObject.dueDate) {
-        return "---- -- --";
+        return "---- -- --";//if todo's duedate is not set, the countdown is meaningless
     } else {
         return formatDistanceToNow(
             todoObject.dueDate, 
@@ -86,12 +67,42 @@ function returnTodoCountDown (todoObject) {
     }
 }
 
+function updateTodoIsdone(todoObject, newIsdone) {
+    todoObject.isDone = newIsdone;
+}
+
+function updateTodoTitle(todoObject, newTitle) {
+    todoObject.title = newTitle;
+}
+
+function updateTodoDuedate(todoObject, newDuedate) {
+    todoObject.dueDate = newDuedate;
+}
+
+function updateTodoPriority(todoObject, newPriority) {
+    todoObject.priority = newPriority;
+}
+
+function updateTodoProject(todoObject, newProject) {
+    todoObject.project = newProject;
+}
+
+function updateTodoDescription(todoObject, newDescription) {
+    todoObject.description = newDescription;
+}
+
 export {
     Todo, 
     todoList, 
     addTodo, 
     removeTodo, 
-    returnTodoCountDown
+    returnTodoCountDown,
+    updateTodoIsdone,
+    updateTodoTitle,
+    updateTodoDuedate,
+    updateTodoPriority,
+    updateTodoProject,
+    updateTodoDescription
 };
 
 

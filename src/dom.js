@@ -1,8 +1,18 @@
-import {projectList, addProject, removeProject, renameProject} from "./project.js"
-import {todoList, removeTodo, returnTodoCountDown} from "./todo.js";
-import {logData} from "./storage.js";
+//!Important role: dom.js should not know any function from controller.js, also should not import anything from controller.js(the dependency direction must be one-way: controller.js-->dom.js)
+import {projectList, removeProject, renameProject} from "./project.js"
+import {
+    todoList, 
+    removeTodo, 
+    returnTodoCountDown, 
+    updateTodoIsdone,
+    updateTodoTitle,
+    updateTodoDuedate,
+    updateTodoPriority,
+    updateTodoProject,
+    updateTodoDescription
+} from "./todo.js";
+// import imgs:
 import rightArrow from "./imgs/arrow_right_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
-import downArrow from "./imgs/arrow_down_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import projectIcon from "./imgs/format_list_bulleted_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import addIcon from "./imgs/add_2_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import moreActionIcon from "./imgs/more_vert_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
@@ -14,17 +24,66 @@ const mainContentafterAddBtn = document.querySelector('#main-content-after-addBt
 const todoInputDialog = document.querySelector('#todo-input-dialog');
 const addNewTodoBtn = document.querySelector('#add-new-todo-btn');
 const todoInputForm = document.querySelector('#todo-input-form');
-const showProjectList = document.querySelector('#show-project-list');
+const projectOptionsAnchor = document.querySelector('#show-project-list');
 
 //--------------- new todo <dialog> ----------------------
 addNewTodoBtn.addEventListener('click', () => todoInputDialog.showModal())
 
+//(function to handle the 'todoMetaData' when 'todoInputDialog' is closed)
+//(!if a function query DOM or attach eventListener, is should in the dom.js)
+//(!DOM-binding utility: bind eventListener or other actions with DOM, the handler binded can be defined later or now, if the handler is not about DOM render, it should be defined in the controller.js or other files)
+//(!'handler' is a function defined in controller.js and passed as an argument)
+function bindTodoDialogClose(handler) {
+    todoInputDialog.addEventListener('close', () => {
+        //(if the dialog is not closed by submit, do nothing but just return)
+        if(todoInputDialog.returnValue != 'submit') {
+            todoInputForm.reset();
+            return;
+        }    
+    
+        const title = todoInputForm.elements['title'].value;
+        const description = todoInputForm.elements['description'].value;
+        const date = todoInputForm.elements['date'].value;
+        const priority = todoInputForm.elements['priority'].value;
+        const project = todoInputForm.elements['project'].value;
+    
+        // thres steps to store a new todo:
+        // 1. make a new todo object
+        //('isDone' is not collected here)
+        const todoMetaData = {
+            title: title,
+            description: description,
+            date: date,
+            priority: priority,
+            project: project
+        }
+        handler(todoMetaData);
+    })
+}
+
+//(when click on the 'project' button on the sidebar, fold todos and only show the project)
+function bindSidebarProjectBtn(handler) {
+    const sidebarProjectBtn = document.querySelector('#sidebar-project');
+    sidebarProjectBtn.addEventListener('click', handler)
+}
+
+function bindSidebarTodoBtn(handler) {
+    const sidebarTodoBtn = document.querySelector('#sidebar-todo');
+    sidebarTodoBtn.addEventListener('click', handler)
+}
+
+function bindSidebarCalendarBtn(handler) {
+    const sideBarCalendarBtn = document.querySelector('#sidebar-Calendar');
+    sideBarCalendarBtn.addEventListener('click', handler)
+}
+
 // render the project list('<option>') after the <select>
 function showProjectListAfterSelect() {
+    projectOptionsAnchor.innerHTML = '';
     projectList.forEach(item => {
         const newRenderProject = document.createElement('option');
         newRenderProject.value = item;
-        showProjectList.appendChild(newRenderProject);
+        projectOptionsAnchor.appendChild(newRenderProject);
     })
 }
 
@@ -32,6 +91,7 @@ function showProjectListAfterSelect() {
 const stopClick = (e) => e.stopPropagation();
 
 //--------------- Reusable function ----------------------
+//(pop up warning dialog before run the 'callback function' first, need confirm to continue)
 function popupWarningDialog(callbackfunction) {
     const deleteTodoWarningDialog = document.querySelector('#delete-warning-dialog');
     const deleteTodoYesBtn = document.querySelector('#delete-yes-btn');
@@ -40,16 +100,14 @@ function popupWarningDialog(callbackfunction) {
     deleteTodoYesBtn.addEventListener('click', () => {
         deleteTodoWarningDialog.close();
         callbackfunction();
-        // removeTodo(todoObject.title);
-        // renderMainContent();
-    }, {once: true})
+    }, {once: true})//('{once: true}' means: After this listener run once, automatically remove it)
     deleteTodoCancelBtn.addEventListener('click', () => {
         deleteTodoWarningDialog.close();
     }, {once: true})
 }
 
-// return the Wrap to append todos later
-function createProjectItem(projectName) {
+//(create project item in the main-content)
+function createProjectItem(projectName, todoHandlers) {
     const projectAndTodosPackage =document.createElement('div'); //wrap the project item and meant for append the todo package later
     const projectWrap = document.createElement('div');
     const projectIcon = document.createElement('img');
@@ -63,12 +121,16 @@ function createProjectItem(projectName) {
     projectAndTodosPackage.id = `${projectName.replaceAll(' ', '-')}-todo-wrap`;
 
     //click to fold/unfold the todos
+    //(this eventListener only act on the DOM, it should in the dom.js)
     projectWrap.addEventListener('click', () => {
         const todosAppendedAfter = projectWrap.parentElement.querySelector('.todo-wrap');
         if (todosAppendedAfter) {
             todosAppendedAfter.remove()
         } else {
-            renderTodosAfterProject(projectName);
+            renderTodosAfterProject(
+                projectName,
+                todoHandlers
+            );
         }
     })
 
@@ -79,7 +141,10 @@ function createProjectItem(projectName) {
     return projectAndTodosPackage;//return it to append todos
 }
 
-function createTodoItem(todoObject) {
+function createTodoItem(
+    todoObject, 
+    todoHandlers
+) {
     //(wrap todo-item and the description)
     const wrappedTodoAndDescription = document.createElement('div');
     wrappedTodoAndDescription.classList.add('todo-and-description-wrap');
@@ -88,7 +153,7 @@ function createTodoItem(todoObject) {
     const wrappedTodoItem = document.createElement('div');
     wrappedTodoItem.classList.add('todo-wrap');
 
-    //(render todo title with a isDone checkbox)
+    //(render todo title with a 'isDone' checkbox)
     function renderTodoTitle(todoCheckBoxWrap, todoObject) {
         todoCheckBoxWrap.replaceChildren();//always clear before render
 
@@ -96,11 +161,19 @@ function createTodoItem(todoObject) {
         todoCheckBox.type = 'checkbox';
         todoCheckBox.classList.add('todo-isDone-value');
         todoCheckBoxWrap.classList.add('todo-isDone-item');
-        todoCheckBox.checked = todoObject.isDone;
-        todoCheckBox.addEventListener('change', () => {
-            todoObject.isDone = todoCheckBox.checked;
-            updateTodoItemColor();
-        });
+        todoCheckBox.checked = todoObject.isDone;//initialization
+        todoCheckBox.addEventListener('change', () => 
+            {
+                todoHandlers.onCheckboxToggle(todoObject, todoCheckBox.checked);
+                updateTodoItemColor();
+            }
+            
+        //     () => {
+        //     //(!!use a function to uncouple DOM from data layer)
+        //     updateTodoIsdone(todoObject, todoCheckBox.checked);
+        //     updateTodoItemColor();
+        // }
+        );
         todoCheckBox.addEventListener('click', stopClick);//since there are too many eventListeners, always remmeber to stop propagation
 
         const todoTitle = document.createElement('p');
@@ -124,7 +197,8 @@ function createTodoItem(todoObject) {
         const finishEditing = () => {
             const newValue = changeTodoTitleInput.value.trim();
             if (newValue) {
-                todoObject.title = newValue;
+                todoHandlers.onTitleChange(todoObject, newValue);
+                // updateTodoTitle(todoObject, newValue);
             }
             renderTodoTitle(todoCheckBoxWrap, todoObject);
         }
@@ -174,7 +248,9 @@ function createTodoItem(todoObject) {
 
         const finishEditing = () => {
             if(todoDuedateInput.value) {
-                todoObject.dueDate = new Date(todoDuedateInput.value);
+                todoHandlers.onDuedateChange(todoObject, todoDuedateInput.value);
+                // const theNewDuedate = new Date(todoDuedateInput.value);
+                // updateTodoDuedate(todoObject, theNewDuedate);
             }
             renderDuedate(todoDuedateWrap, todoObject);
         };
@@ -216,10 +292,16 @@ function createTodoItem(todoObject) {
     todoPrioritySelect.appendChild(optionUnset);
     todoPriorityLabel.appendChild(todoPrioritySelect);
     todoPrioritySelect.value = todoObject.priority;
-    todoPrioritySelect.addEventListener('change', () => {
-        todoObject.priority = todoPrioritySelect.value;
-        updateTodoItemColor();
-    })
+    todoPrioritySelect.addEventListener('change', () => 
+        {
+            todoHandlers.onPriorityChange(todoObject, todoPrioritySelect.value);
+            updateTodoItemColor();
+        }
+    //     () => {
+    //     updateTodoPriority(todoObject, todoPrioritySelect.value);
+    //     updateTodoItemColor();
+    // }
+    )
 
     //project:
     const todoProjectLabel = document.createElement('label');
@@ -246,8 +328,11 @@ function createTodoItem(todoObject) {
     todoProjectLabel.appendChild(todoProjectSelect);
     todoProjectSelect.value = todoObject.project;
     todoProjectSelect.addEventListener('change', () => {
-        todoObject.project = todoProjectSelect.value;
-        renderMainContent();
+        todoHandlers.onProjectChange(todoObject, todoProjectSelect.value);
+        // updateTodoProject(todoObject, todoProjectSelect.value);
+        renderMainContent(
+            todoHandlers
+        );
     })
 
     //description:
@@ -274,7 +359,8 @@ function createTodoItem(todoObject) {
             const finishEditing = () => {
                 const newDescription = todoDescriptionInput.value.trim();
                 if (newDescription) {
-                    todoObject.description = newDescription;
+                    todoHandlers.onDescriptionChange(todoObject, newDescription);
+                    // updateTodoDescription(todoObject, newDescription);
                     renderDescription(todoDescriptionWrap, todoObject);
                     todoDescriptionWrap.classList.toggle('hide');
                 }
@@ -297,7 +383,6 @@ function createTodoItem(todoObject) {
     todoCountdownWrap.appendChild(todoCountdown);
     todoCountdown.textContent = returnTodoCountDown(todoObject);
 
-
     //delete icon:
     const deleteTodoBtn = document.createElement('img');
     deleteTodoBtn.classList.add('delete-item');
@@ -305,8 +390,8 @@ function createTodoItem(todoObject) {
     deleteTodoBtn.addEventListener('click', () => {
         //Inner Function: the delete action to callback
         const removeTodoAction = () => {
-            removeTodo(todoObject.title);
-            renderMainContent();
+            removeTodo(todoObject.id);
+            renderMainContent(todoHandlers);
         }
         popupWarningDialog(removeTodoAction);
     })
@@ -384,40 +469,55 @@ function updateTodoItemColor() {
     })
 }
 
-function renderTodosAfterProject(projectName) {
+function renderTodosAfterProject(
+    projectName,
+    todoHandlers
+) {
     // append todo after the project
     const thisProjectsTodoList = todoList.filter(todoItem => todoItem.project === projectName);
 
     thisProjectsTodoList.forEach(thisProjectsTodo => {
-        const wrappedTodoItem = createTodoItem(thisProjectsTodo);
+        const wrappedTodoItem = createTodoItem(
+            thisProjectsTodo,
+            todoHandlers
+        );
         const theProjectPackage = document.querySelector(`#${projectName.replaceAll(' ', '-')}-todo-wrap`);
         theProjectPackage.appendChild(wrappedTodoItem);
     });
     updateTodoItemColor();
 }
 
-function renderProjectsAndTodosInMainContent() {
+function renderProjectsAndTodosInMainContent(todoHandlers) {
     projectList.forEach(
         project => {
-        const projectAndTodosPackage = createProjectItem(project);
+        const projectAndTodosPackage = createProjectItem(
+            project,
+            todoHandlers
+        );
         mainContentafterAddBtn.appendChild(projectAndTodosPackage);
-        renderTodosAfterProject(project);
+        renderTodosAfterProject(
+            project,
+            todoHandlers
+        );
     })
 }
 
 //(render the todos dont belong to any project)
-function renderTodosWithoutProject() {
+function renderTodosWithoutProject(todoHandlers) {
     const todoListWithoutProject = todoList.filter(item => 
         !projectList.includes(item.project)
     );
 
-    //create a blank block to make some distance before todos without projcet
+    //create a blank block to make some distance before todos without project
     const emptyBlock = document.createElement('div');
     emptyBlock.id = "empty-block";
     mainContentafterAddBtn.appendChild(emptyBlock);
 
     todoListWithoutProject.forEach(todoWithoutProject => {
-        const wrappedTodoItemWithoutProject = createTodoItem(todoWithoutProject);
+        const wrappedTodoItemWithoutProject = createTodoItem(
+            todoWithoutProject,
+            todoHandlers
+        );
         wrappedTodoItemWithoutProject.classList.add('the-todo-without-project');
         mainContentafterAddBtn.appendChild(wrappedTodoItemWithoutProject);
     })
@@ -481,9 +581,29 @@ function createAddProjectDialog() {
     }
 }
 
+function buildAddProjectComponent(onAddProject) {
+    createAddProjectBtn();
+    const addProjectContainer = document.querySelector('#add-project-container')
+
+    addProjectContainer.addEventListener('click', (event) => {
+        if (event.target.closest('#add-project-btn')) {
+            const theAddProjectDialogObject = createAddProjectDialog();
+
+            theAddProjectDialogObject.addProjectButton.addEventListener('click', () => {
+                onAddProject(theAddProjectDialogObject.addProjectInput.value);
+            });
+
+            theAddProjectDialogObject.cancelActionButton.addEventListener('click', () => {
+                createAddProjectBtn();
+            })
+        }
+    })
+}
+
+//(since this eventLisntener added to every project on the sidebar, but only need to work once, set the variable 'popuplistenerRegisterd' to make the eventListener work only once, because the variable will be passed 'true' the first time the eventListener called)
 let popupListenerRegistered = false;
 //(make the add project popup menu close when click outside of it)
-function setupProjectPopupMenuOutsideClick(popup, btn) {
+function setupProjectPopupMenuOutsideClick() {
     if (popupListenerRegistered) return;
     popupListenerRegistered = true;
 
@@ -540,7 +660,7 @@ function renderProjectsInSidebar() {
         projectWrap.appendChild(popupMenu);
 
         //add eventListener:when click outside of the menu, close it
-        setupProjectPopupMenuOutsideClick(popupMenu, moreActionImg);
+        setupProjectPopupMenuOutsideClick();
 
         //function the delete project button
         //(for dynamic elements, attach event listeners when creating them, not in the controller.js)
@@ -548,7 +668,7 @@ function renderProjectsInSidebar() {
             const removeProjectAction = () => {
                 removeProject(project);
                 renderProjectsInSidebar();
-                renderMainContent();
+                renderMainContent(todoHandlers);
             }
             popupWarningDialog(removeProjectAction);
         })
@@ -574,13 +694,13 @@ function renderProjectsInSidebar() {
                     const theNewProjectName = renameProjectInput.value;
                     renameProject(project, theNewProjectName);
                     renderProjectsInSidebar();
-                    renderMainContent();
+                    renderMainContent(todoHandlers);
                 }               
             })
 
             cancelRenameActionBtn.addEventListener('click', () => {
                 renderProjectsInSidebar();
-                renderMainContent();                
+                renderMainContent(todoHandlers);                
             })
 
 
@@ -591,18 +711,39 @@ function renderProjectsInSidebar() {
         })
 
     })
-
+    return 
 }
 
+//(call back in eventListener:fold all todo items, only shows the project)
+function foldAllTodoItems() {
+    const projectWraps = document.querySelectorAll('.project-todo-wrap');
+    projectWraps.forEach(projectWrap => {
+        const todosAfterThisProjects = projectWrap.querySelectorAll('.todo-and-description-wrap');
+        todosAfterThisProjects.forEach(item => item.remove());
+    });
+    const theEmptyBlock = document.querySelector('#empty-block');
+    theEmptyBlock.remove();
+    const theTodoWithoutProjects = document.querySelectorAll('.the-todo-without-project');
+    theTodoWithoutProjects.forEach(item => item.remove());
+}
+
+function renderCalendarPage() {
+    const mainContentafterAddBtn = document.querySelector('#main-content-after-addBtn');
+    mainContentafterAddBtn.innerHTML = '';
+    const tobeContinued = document.createElement('div');
+    tobeContinued.id = 'tobeContinued';
+    tobeContinued.textContent = 'to be continued...'
+    mainContentafterAddBtn.appendChild(tobeContinued);
+}
 
 // Export Function: show all projects and todos after project, and the todos without project
-function renderMainContent() {
+function renderMainContent(todoHandlers) {
     //( always clear the content first if it's a update render)
     mainContentafterAddBtn.innerHTML = '';
-    renderProjectsAndTodosInMainContent();
-    renderTodosWithoutProject();
+    renderProjectsAndTodosInMainContent(todoHandlers);
+    renderTodosWithoutProject(todoHandlers);
     updateTodoItemColor();
 }
 
 
-export {content, todoInputDialog, todoInputForm, showProjectList, showProjectListAfterSelect, renderMainContent, renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor};
+export {content, todoInputDialog, todoInputForm, projectOptionsAnchor, showProjectListAfterSelect, renderMainContent, renderProjectsInSidebar, createAddProjectBtn, createAddProjectDialog, renderProjectsAndTodosInMainContent, updateTodoItemColor, foldAllTodoItems, buildAddProjectComponent, renderCalendarPage, bindTodoDialogClose, bindSidebarProjectBtn, bindSidebarTodoBtn, bindSidebarCalendarBtn};
