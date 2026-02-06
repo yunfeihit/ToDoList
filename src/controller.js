@@ -190,8 +190,8 @@ function handleTodoDescriptionChanged(todoObject, newDescription) {
 const todoHandlers = {
     onCheckboxToggle: handleTodoCheckboxClick,
     onTitleChange: handleTodoInputChanged,
-    onDuedataChange: handleTodoDuedateChanged,
-    onPrioirtyChange: handleTodoPriorityChanged,
+    onDuedateChange: handleTodoDuedateChanged,
+    onPriorityChange: handleTodoPriorityChanged,
     onProjectChange: handleTodoProjectChanged,
     onDescriptionChange: handleTodoDescriptionChanged
 }
