@@ -1,4 +1,4 @@
-import {Todo, todoList} from "./todo.js";
+import {todoList} from "./todo.js";
 import {projectList} from "./project.js";
 
 // combine all data(todoList and projectList) to an object and return it (to store it later)

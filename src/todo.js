@@ -32,7 +32,7 @@ const todoList = [];
 
 //'todoMetaData' is an object collected from the dialog DOM(it doesnt has a 'isDone' argument to pass, since the logic that you cannot create a todo that already done)
 function addTodo(todoMetaData) {
-    if (todoList.some(todo => todo.title === todoMetaData)) {
+    if (todoList.some(todo => todo.title === todoMetaData.title)) {
         console.warn('Todo title is already exist!')
         return false;
     } else {
@@ -66,43 +66,13 @@ function returnTodoCountDown (todoObject) {
         );
     }
 }
-
-function updateTodoIsdone(todoObject, newIsdone) {
-    todoObject.isDone = newIsdone;
-}
-
-function updateTodoTitle(todoObject, newTitle) {
-    todoObject.title = newTitle;
-}
-
-function updateTodoDuedate(todoObject, newDuedate) {
-    todoObject.dueDate = newDuedate;
-}
-
-function updateTodoPriority(todoObject, newPriority) {
-    todoObject.priority = newPriority;
-}
-
-function updateTodoProject(todoObject, newProject) {
-    todoObject.project = newProject;
-}
-
-function updateTodoDescription(todoObject, newDescription) {
-    todoObject.description = newDescription;
-}
-
+ 
 export {
     Todo, 
     todoList, 
     addTodo, 
     removeTodo, 
     returnTodoCountDown,
-    updateTodoIsdone,
-    updateTodoTitle,
-    updateTodoDuedate,
-    updateTodoPriority,
-    updateTodoProject,
-    updateTodoDescription
 };
 
 
