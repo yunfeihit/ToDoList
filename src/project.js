@@ -22,6 +22,8 @@ function removeProject(projectName) {
 }
 
 function renameProject(projectName, newName) {
+    if (projectList.includes(newName)) return false;
+
     const theProjectIndex = projectList.indexOf(projectName);
     if (theProjectIndex === -1) {
         console.warn("There is no such project!");

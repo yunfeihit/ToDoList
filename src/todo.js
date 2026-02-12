@@ -58,7 +58,7 @@ function removeTodo(todoId) {
 
 function returnTodoCountDown (todoObject) {
     if (!todoObject.dueDate) {
-        return "---- -- --";//if todo's duedate is not set, the countdown is meaningless
+        return "---- -- --";//if todo's duedate is not set, the countdown is meaningless, return fixed characters
     } else {
         return formatDistanceToNow(
             todoObject.dueDate, 

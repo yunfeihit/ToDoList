@@ -1,26 +1,23 @@
 //!Important rules: controller.js can know the dom.js
-import {
-    Todo, 
-    todoList, 
-    addTodo, 
-    removeTodo
-} from "./todo.js";
+import {Todo, todoList, addTodo, removeTodo} from "./todo.js";
 import {projectList, addProject, removeProject, renameProject} from "./project.js";
 import {saveData, loadData} from "./storage.js";
 import {showProjectListAfterSelect, renderMainContent,  renderProjectsInSidebar,foldAllTodoItems, buildAddProjectComponent, renderCalendarPage, bindTodoDialogClose, bindSidebarProjectBtn, bindSidebarTodoBtn, bindSidebarCalendarBtn, popupWarningDialog, updateTodoItemColor} from "./dom.js";
 
+//(return 'true' if todoMetaData.title is already exist)
 function isTodoTitleDuplicate(todoMetaData) {
     return todoList.some(todo => todo.title === todoMetaData.title);
 }
 
-function handleTodoSubmit(todoMetaData, todoHandlers) {
+//(the handler 'handleTodoSubmit' still need some other handlers 'appHandlers' be passed as parameter)
+function handleTodoSubmit(todoMetaData, appHandlers) {
     if (isTodoTitleDuplicate(todoMetaData)) {
         alert('This todo title already exist!');
-        return false;
+        return false;//(if todoMetaData's title is duplicated, return false and donot execute following code)
     };
     addTodo(todoMetaData);
     saveData();
-    renderMainContent(todoHandlers);
+    renderMainContent(appHandlers);
 }
 
 //(rehydrate data from 'JSON.parse(jsonData)', in which todo si turn to plain object, object is fine)
@@ -87,7 +84,7 @@ function bootstrapApp() {
     }
 }
 
-function handleSidebarProjectBtn(appState, todoHandlers) {
+function handleSidebarProjectBtn(appState) {
     if (appState.ifMainContentIsExpand) {
         foldAllTodoItems();
         appState.ifMainContentIsExpand = false;
@@ -96,8 +93,8 @@ function handleSidebarProjectBtn(appState, todoHandlers) {
     } 
 }
 
-function handleSidebarTodoBtn(appState, todoHandlers) {
-    renderMainContent(todoHandlers);
+function handleSidebarTodoBtn(appState, appHandlers) {
+    renderMainContent(appHandlers);
     appState.ifMainContentIsExpand = true;
 }
 
@@ -105,14 +102,14 @@ function handleSidebarCalendarBtn() {
     renderCalendarPage();
 }
 
-function handleAddProjectBtn(newProjectName, todoHandlers) {
+function handleAddProjectBtn(newProjectName, appHandlers) {
     if (!newProjectName) return;
 
     const success = addProject(newProjectName);
     if(!success) alert('This projcet already exist!');
 
-    renderProjectsInSidebar(todoHandlers);
-    renderMainContent(todoHandlers);
+    renderProjectsInSidebar(appHandlers);
+    renderMainContent(appHandlers);
 
     saveData();
 }
@@ -139,9 +136,9 @@ function handleTodoPriorityChanged(todoObject, newPriority) {
     saveData();
 }
 
-function handleTodoProjectChanged(todoObject, newProject, todoHandlers) {
+function handleTodoProjectChanged(todoObject, newProject, appHandlers) {
     todoObject.project = newProject;
-    renderMainContent(todoHandlers);
+    renderMainContent(appHandlers);
     saveData();
 }
 
@@ -150,38 +147,37 @@ function handleTodoDescriptionChanged(todoObject, newDescription) {
     saveData();
 }
 
-function handleDeleteTodo(todoObject, todoHandlers) {
+function handleDeleteTodo(todoObject, appHandlers) {
     const removeTodoAction = () => {
         removeTodo(todoObject.id);
-        renderMainContent(todoHandlers);
+        renderMainContent(appHandlers);
+        saveData();
     }
     popupWarningDialog(removeTodoAction);
-
-    saveData();
 }
 
-function handleDeleteProject(project, todoHandlers) {
+function handleDeleteProject(project, appHandlers) {
     const removeProjectAction = () => {
         removeProject(project);
-        renderProjectsInSidebar(todoHandlers);
-        renderMainContent(todoHandlers);
+        renderProjectsInSidebar(appHandlers);
+        renderMainContent(appHandlers);
     }
     popupWarningDialog(removeProjectAction);
 
     saveData();
 }
 
-function handleRenameProject(project, newProjectName, todoHandlers) {
+function handleRenameProject(project, newProjectName, appHandlers) {
     if (newProjectName) {
         renameProject(project, newProjectName);
-        renderProjectsInSidebar(todoHandlers);
-        renderMainContent(todoHandlers);
+        renderProjectsInSidebar(appHandlers);
+        renderMainContent(appHandlers);
         saveData();
     }  
 }
 
 
-const todoHandlers = {
+const appHandlers = {
     onCheckboxToggle: handleTodoCheckboxClick,
     onTitleChange: handleTodoInputChanged,
     onDuedateChange: handleTodoDuedateChanged,
@@ -199,15 +195,15 @@ function loadPage() {
     bootstrapApp();
     //todo input dialog:
     showProjectListAfterSelect();
-    bindTodoDialogClose(handleTodoSubmit, todoHandlers);
+    bindTodoDialogClose(handleTodoSubmit, appHandlers);
     //main content:
-    renderMainContent(todoHandlers);
+    renderMainContent(appHandlers);
     //sidebar:
-    renderProjectsInSidebar(todoHandlers);
-    buildAddProjectComponent(handleAddProjectBtn, todoHandlers);
+    renderProjectsInSidebar(appHandlers);
+    buildAddProjectComponent(handleAddProjectBtn, appHandlers);
     const appState = {ifMainContentIsExpand: true};//(!!improtant: should not use a variable like: 'let ifMainContentIsExpand = ture', since only the copy of varible will be changed inside a funcion. using object will be the reference, change the status directlly)
-    bindSidebarProjectBtn(() => handleSidebarProjectBtn(appState, todoHandlers)); 
-    bindSidebarTodoBtn(() => handleSidebarTodoBtn(appState, todoHandlers));
+    bindSidebarProjectBtn(() => handleSidebarProjectBtn(appState, appHandlers)); 
+    bindSidebarTodoBtn(() => handleSidebarTodoBtn(appState, appHandlers));
     bindSidebarCalendarBtn(handleSidebarCalendarBtn);
 }
 

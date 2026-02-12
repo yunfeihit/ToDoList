@@ -19,11 +19,17 @@ const projectOptionsAnchor = document.querySelector('#show-project-list');
 //--------------- new todo <dialog> ----------------------
 addNewTodoBtn.addEventListener('click', () => todoInputDialog.showModal())
 
-//(function to handle the 'todoMetaData' when 'todoInputDialog' is closed)
-//(!if a function query DOM or attach eventListener, is should in the dom.js)
+const closeDialogBtn = document.querySelector('#close-dialog-btn');
+closeDialogBtn.addEventListener('click', () => {
+    todoInputDialog.close();
+});
+
+
+//--------------- Binder function ----------------------
+
+//(bind handler to the 'dialog close action', the handler will be defined in the controller.js)
 //(!DOM-binding utility: bind eventListener or other actions with DOM, the handler binded can be defined later or now, if the handler is not about DOM render, it should be defined in the controller.js or other files)
-//(!'handler' is a function defined in controller.js and passed as an argument)
-function bindTodoDialogClose(handler, todoHandlers) {
+function bindTodoDialogClose(handler, appHandlers) {
     todoInputDialog.addEventListener('close', () => {
         //(if the dialog is not closed by submit, do nothing but just return)
         if(todoInputDialog.returnValue != 'submit') {
@@ -47,12 +53,10 @@ function bindTodoDialogClose(handler, todoHandlers) {
             priority: priority,
             project: project
         }
-        handler(todoMetaData, todoHandlers);
+        handler(todoMetaData, appHandlers);
     })
 }
 
-//(when click on the 'project' button on the sidebar, fold todos and only show the project)
-//(the 'bind' function only means bind some handler on one DOM)
 function bindSidebarProjectBtn(handler) {
     const sidebarProjectBtn = document.querySelector('#sidebar-project');
     sidebarProjectBtn.addEventListener('click', handler)
@@ -98,7 +102,8 @@ function popupWarningDialog(callbackfunction) {
 }
 
 //(create project item in the main-content)
-function createProjectItem(projectName, todoHandlers) {
+//('appHandlers' is passed as parameter to the innerFunction 'renderTodosAfterProject')
+function createProjectItem(projectName) {
     const projectAndTodosPackage =document.createElement('div'); //wrap the project item and meant for append the todo package later
     const projectWrap = document.createElement('div');
     const projectIcon = document.createElement('img');
@@ -111,30 +116,30 @@ function createProjectItem(projectName, todoHandlers) {
     projectAndTodosPackage.classList.add('project-todo-wrap');
     projectAndTodosPackage.id = `${projectName.replaceAll(' ', '-')}-todo-wrap`;
 
-    //click to fold/unfold the todos
-    //(this eventListener only act on the DOM, it should in the dom.js)
-    projectWrap.addEventListener('click', () => {
-        const todosAppendedAfter = projectWrap.parentElement.querySelector('.todo-wrap');
-        if (todosAppendedAfter) {
-            todosAppendedAfter.remove()
-        } else {
-            renderTodosAfterProject(
-                projectName,
-                todoHandlers
-            );
-        }
-    })
-
     projectWrap.appendChild(projectIcon);
     projectWrap.appendChild(projectNameEl);
     projectAndTodosPackage.appendChild(projectWrap);
 
-    return projectAndTodosPackage;//return it to append todos
+    return projectAndTodosPackage;//return the wrapper to append todos
 }
 
-//('todoHandlers' is an object collect all kinds of handlers, which defined in the controller.js and passed to the function when calling it)
-function createTodoItem(todoObject, todoHandlers) {
-    //(wrap todo-item and the description)
+//(bind project item with function: click to fold/unfold the todos)
+function bindProjectItem(projectAndTodosPackage, appHandlers, projectName) {
+    const theProjectWrap = projectAndTodosPackage.querySelector('.project-item');
+
+    theProjectWrap.addEventListener('click', () => {
+        const todosAppendedAfter = theProjectWrap.parentElement.querySelector('.todo-wrap');
+        if (todosAppendedAfter) {
+            todosAppendedAfter.remove()//(if something already appended after, remove them)
+        } else {
+            renderTodosAfterProject(projectName, appHandlers);
+        }
+    })
+}
+
+//('appHandlers' is an object collect all kinds of handlers, which defined in the controller.js and passed to the function when calling it)
+function createTodoItem(todoObject, appHandlers) {
+    //(double wrap todo items and the description)
     const wrappedTodoAndDescription = document.createElement('div');
     wrappedTodoAndDescription.classList.add('todo-and-description-wrap');
 
@@ -142,7 +147,7 @@ function createTodoItem(todoObject, todoHandlers) {
     const wrappedTodoItem = document.createElement('div');
     wrappedTodoItem.classList.add('todo-wrap');
 
-    //(Innner Function: render todo title with a 'isDone' checkbox)
+    //(Innner Function: render todo title with a 'isDone' checkbox inside 'todoCheckBoxWrap')
     function renderTodoTitle(todoCheckBoxWrap, todoObject) {
         todoCheckBoxWrap.replaceChildren();//always clear before render
 
@@ -153,15 +158,15 @@ function createTodoItem(todoObject, todoHandlers) {
         todoCheckBox.checked = todoObject.isDone;//initialization
         todoCheckBox.addEventListener('change', () => 
             {
-                todoHandlers.onCheckboxToggle(todoObject, todoCheckBox.checked);
+                appHandlers.onCheckboxToggle(todoObject, todoCheckBox.checked);
             }
         );
-        todoCheckBox.addEventListener('click', stopClick);//since there are too many eventListeners, always remmeber to stop propagation
+        todoCheckBox.addEventListener('click', stopClick);//since there are too many eventListeners, always remmeber to stop propagation on an eventListener
 
         const todoTitle = document.createElement('p');
         todoTitle.textContent = todoObject.title;
         todoTitle.classList.add('todo-title');
-        todoTitle.id = `${todoObject.title}-title`
+        todoTitle.id = `todo-${todoObject.id}`;
 
         todoCheckBoxWrap.appendChild(todoCheckBox);
         todoCheckBoxWrap.appendChild(todoTitle);
@@ -174,13 +179,15 @@ function createTodoItem(todoObject, todoHandlers) {
         todoCheckBoxWrap.replaceChildren();
 
         const changeTodoTitleInput = document.createElement('input');
+        changeTodoTitleInput.value = todoObject.title;
         todoCheckBoxWrap.appendChild(changeTodoTitleInput);
         changeTodoTitleInput.classList.add('change-todo-title-input');
 
+        //(inner function to handle the event: todo title changed or the input lose focus)
         const finishEditing = () => {
             const newValue = changeTodoTitleInput.value.trim();
             if (newValue) {
-                todoHandlers.onTitleChange(todoObject, newValue);
+                appHandlers.onTitleChange(todoObject, newValue);
             }
             renderTodoTitle(todoCheckBoxWrap, todoObject);
         }
@@ -230,7 +237,7 @@ function createTodoItem(todoObject, todoHandlers) {
 
         const finishEditing = () => {
             if(todoDuedateInput.value) {
-                todoHandlers.onDuedateChange(todoObject, todoDuedateInput.value);
+                appHandlers.onDuedateChange(todoObject, todoDuedateInput.value);
             }
             renderDuedate(todoDuedateWrap, todoObject);
         };
@@ -274,7 +281,7 @@ function createTodoItem(todoObject, todoHandlers) {
     todoPrioritySelect.value = todoObject.priority;
     todoPrioritySelect.addEventListener('change', () => 
         {
-            todoHandlers.onPriorityChange(todoObject, todoPrioritySelect.value);
+            appHandlers.onPriorityChange(todoObject, todoPrioritySelect.value);
             updateTodoItemColor();
         }
     )
@@ -305,44 +312,45 @@ function createTodoItem(todoObject, todoHandlers) {
     todoProjectLabel.appendChild(todoProjectSelect);
     todoProjectSelect.value = todoObject.project;
     todoProjectSelect.addEventListener('change', () => {
-        todoHandlers.onProjectChange(todoObject, todoProjectSelect.value, todoHandlers);
+        appHandlers.onProjectChange(todoObject, todoProjectSelect.value, appHandlers);
     })
+
+    function renderDescription(todoDescriptionWrap, todoObject) {
+        todoDescriptionWrap.replaceChildren();
+
+        const todoDescription = document.createElement('div');
+        todoDescriptionWrap.appendChild(todoDescription);    
+        todoDescriptionWrap.classList.add('todo-description', 'hide');
+        todoDescription.innerHTML = `Description:<br>${todoObject.description}`;
+        todoDescription.addEventListener('click', () => renderDescriptionInput(todoDescriptionWrap, todoObject));
+    }
+
+    function renderDescriptionInput(todoDescriptionWrap, todoObject) {
+        todoDescriptionWrap.replaceChildren();
+
+        const todoDescriptionInputTitle = document.createElement('div');
+        todoDescriptionInputTitle.textContent = 'Description:';
+        const todoDescriptionInput = document.createElement('input');
+        todoDescriptionInput.classList.add('todo-description-input');
+        todoDescriptionInput.type = 'text';
+        todoDescriptionInput.value = todoObject.description;
+        const finishEditing = () => {
+            const newDescription = todoDescriptionInput.value.trim();
+            if (newDescription) {
+                appHandlers.onDescriptionChange(todoObject, newDescription);
+                renderDescription(todoDescriptionWrap, todoObject);
+                todoDescriptionWrap.classList.toggle('hide');
+            }
+        };
+        todoDescriptionInput.addEventListener('blur', finishEditing);
+        todoDescriptionInput.addEventListener('change', finishEditing);
+        todoDescriptionInput.addEventListener('click', stopClick);
+        todoDescriptionWrap.appendChild(todoDescriptionInputTitle);
+        todoDescriptionWrap.appendChild(todoDescriptionInput);
+    }
 
     //description:
     const todoDescriptionWrap = document.createElement('div');
-
-        function renderDescription(todoDescriptionWrap, todoObject) {
-            todoDescriptionWrap.replaceChildren();
-
-            const todoDescription = document.createElement('div');
-            todoDescriptionWrap.appendChild(todoDescription);    
-            todoDescriptionWrap.classList.add('todo-description', 'hide');
-            todoDescription.innerHTML = `Description:<br>${todoObject.description}`;
-            todoDescription.addEventListener('click', () => renderDescriptionInput(todoDescriptionWrap, todoObject));
-        }
-        function renderDescriptionInput(todoDescriptionWrap, todoObject) {
-            todoDescriptionWrap.replaceChildren();
-
-            const todoDescriptionInputTitle = document.createElement('div');
-            todoDescriptionInputTitle.textContent = 'Description:';
-            const todoDescriptionInput = document.createElement('input');
-            todoDescriptionInput.classList.add('todo-description-input');
-            todoDescriptionInput.type = 'text';
-            todoDescriptionInput.value = todoObject.description;
-            const finishEditing = () => {
-                const newDescription = todoDescriptionInput.value.trim();
-                if (newDescription) {
-                    todoHandlers.onDescriptionChange(todoObject, newDescription);
-                    renderDescription(todoDescriptionWrap, todoObject);
-                    todoDescriptionWrap.classList.toggle('hide');
-                }
-            };
-            todoDescriptionInput.addEventListener('blur', finishEditing);
-            todoDescriptionInput.addEventListener('change', finishEditing);
-            todoDescriptionInput.addEventListener('click', stopClick);
-            todoDescriptionWrap.appendChild(todoDescriptionInputTitle);
-            todoDescriptionWrap.appendChild(todoDescriptionInput);
-        }
     renderDescription(todoDescriptionWrap, todoObject);
     
     //countDown:
@@ -360,11 +368,11 @@ function createTodoItem(todoObject, todoHandlers) {
     deleteTodoBtn.classList.add('delete-item');
     deleteTodoBtn.src = deleteIcon;
     deleteTodoBtn.addEventListener('click', () => {
-        todoHandlers.onClickDeleteTodoBtn(todoObject, todoHandlers)
+        appHandlers.onClickDeleteTodoBtn(todoObject, appHandlers)
     })//(!!a call back function must be wrapped in an arrow function, otherwise it will run immediately, not on click)
     deleteTodoBtn.addEventListener('click', stopClick);
 
-    //wrap them 
+    //wrap all the todo items: 
     wrappedTodoItem.appendChild(todoCheckBoxWrap);
     wrappedTodoItem.appendChild(todoDuedateWrap);
     wrappedTodoItem.appendChild(todoPriorityLabel);
@@ -374,7 +382,7 @@ function createTodoItem(todoObject, todoHandlers) {
     wrappedTodoAndDescription.appendChild(wrappedTodoItem);
     wrappedTodoAndDescription.appendChild(todoDescriptionWrap);
 
-    //add a eventListener on todo item, taggle the description
+    //(taggle the description)
     wrappedTodoItem.addEventListener('click', () => {
         todoDescriptionWrap.classList.toggle('hide');
     })
@@ -390,6 +398,7 @@ function createTodoItem(todoObject, todoHandlers) {
 }
 
 //(update todo item's color reagrding the priority and isDone status)
+//(only based on the DOM status, not based on the data)
 function updateTodoItemColor() {
     const theTodoItems = document.querySelectorAll('.todo-wrap');
     theTodoItems.forEach(theTodoItem => {
@@ -437,14 +446,14 @@ function updateTodoItemColor() {
 }
 
 //(append all the related todos after the specific project)
-function renderTodosAfterProject(projectName, todoHandlers) {
+function renderTodosAfterProject(projectName, appHandlers) {
     // append todo after the project
     const thisProjectsTodoList = todoList.filter(todoItem => todoItem.project === projectName);
 
     thisProjectsTodoList.forEach(thisProjectsTodo => {
         const wrappedTodoItem = createTodoItem(
             thisProjectsTodo,
-            todoHandlers
+            appHandlers
         );
         const theProjectPackage = document.querySelector(`#${projectName.replaceAll(' ', '-')}-todo-wrap`);
         theProjectPackage.appendChild(wrappedTodoItem);
@@ -452,18 +461,19 @@ function renderTodosAfterProject(projectName, todoHandlers) {
     updateTodoItemColor();
 }
 
-function renderProjectsAndTodosInMainContent(todoHandlers) {
+function renderProjectsAndTodosInMainContent(appHandlers) {
     projectList.forEach(
         project => {
-        const projectAndTodosPackage = createProjectItem(project, todoHandlers);
+        const projectAndTodosPackage = createProjectItem(project);
+        bindProjectItem(projectAndTodosPackage, appHandlers, project);
         mainContentafterAddBtn.appendChild(projectAndTodosPackage);
-        renderTodosAfterProject(project, todoHandlers);
+        renderTodosAfterProject(project, appHandlers);
     })
 }
 
 //(render the todos donot belong to any project)
-function renderTodosWithoutProject(todoHandlers) {
-    const todoListWithoutProject = todoList.filter(item => 
+function renderTodosWithoutProject(appHandlers) {
+    const todoListWithoutAnyProject = todoList.filter(item => 
         !projectList.includes(item.project)
     );
 
@@ -472,10 +482,10 @@ function renderTodosWithoutProject(todoHandlers) {
     emptyBlock.id = "empty-block";
     mainContentafterAddBtn.appendChild(emptyBlock);
 
-    todoListWithoutProject.forEach(todoWithoutProject => {
+    todoListWithoutAnyProject.forEach(todoWithoutAnyProject => {
         const wrappedTodoItemWithoutProject = createTodoItem(
-            todoWithoutProject,
-            todoHandlers
+            todoWithoutAnyProject,
+            appHandlers
         );
         wrappedTodoItemWithoutProject.classList.add('the-todo-without-project');
         mainContentafterAddBtn.appendChild(wrappedTodoItemWithoutProject);
@@ -541,7 +551,7 @@ function createAddProjectDialog() {
 }
 
 //(build the add project component, padd the 'onAddProject' function as an handler when click to add a projcet, which defined in the controller.js as 'handleAddProjectBtn')
-function buildAddProjectComponent(onAddProject, todoHandlers) {
+function buildAddProjectComponent(onAddProject, appHandlers) {
     createAddProjectBtn();
     const addProjectContainer = document.querySelector('#add-project-container')
 
@@ -550,7 +560,7 @@ function buildAddProjectComponent(onAddProject, todoHandlers) {
             const theAddProjectDialogObject = createAddProjectDialog();
 
             theAddProjectDialogObject.addProjectButton.addEventListener('click', () => {
-                onAddProject(theAddProjectDialogObject.addProjectInput.value, todoHandlers);
+                onAddProject(theAddProjectDialogObject.addProjectInput.value, appHandlers);
             });
 
             theAddProjectDialogObject.cancelActionButton.addEventListener('click', () => {
@@ -577,7 +587,7 @@ function setupProjectPopupMenuOutsideClick() {
     })
 }
 
-function renderProjectsInSidebar(todoHandlers) {
+function renderProjectsInSidebar(appHandlers) {
     const projectsInSidebarContainer = document.querySelector('#projects-in-sidebar-container'); 
     projectsInSidebarContainer.innerHTML = '';
 
@@ -625,7 +635,7 @@ function renderProjectsInSidebar(todoHandlers) {
         //function the delete project button
         //(!for dynamic elements, attach event listeners when creating them, not in the controller.js)
         deleteOptionBtn.addEventListener('click', () => {
-            todoHandlers.onclickDeleteProjectBtn(project, todoHandlers);
+            appHandlers.onclickDeleteProjectBtn(project, appHandlers);
         })
 
         //function the rename project button
@@ -645,14 +655,13 @@ function renderProjectsInSidebar(todoHandlers) {
             renameProjectWrap.appendChild(cancelRenameActionBtn);
 
             renameProjectBtn.addEventListener('click', () => {
-                todoHandlers.onClickRenameProject(project, renameProjectInput.value, todoHandlers);              
+                appHandlers.onClickRenameProject(project, renameProjectInput.value, appHandlers);              
             })
 
             cancelRenameActionBtn.addEventListener('click', () => {
-                renderProjectsInSidebar(todoHandlers);
-                renderMainContent(todoHandlers);                
+                renderProjectsInSidebar(appHandlers);
+                renderMainContent(appHandlers);                
             })
-
 
             projectName.replaceWith(renameProjectWrap);
 
@@ -672,7 +681,7 @@ function foldAllTodoItems() {
         todosAfterThisProjects.forEach(item => item.remove());
     });
     const theEmptyBlock = document.querySelector('#empty-block');
-    theEmptyBlock.remove();
+    if (theEmptyBlock) theEmptyBlock.remove();
     const theTodoWithoutProjects = document.querySelectorAll('.the-todo-without-project');
     theTodoWithoutProjects.forEach(item => item.remove());
 }
@@ -687,11 +696,11 @@ function renderCalendarPage() {
 }
 
 // Export Function: show all projects and todos after project, and the todos without project
-function renderMainContent(todoHandlers) {
+function renderMainContent(appHandlers) {
     //( always clear the content first if it's a update render)
     mainContentafterAddBtn.innerHTML = '';
-    renderProjectsAndTodosInMainContent(todoHandlers);
-    renderTodosWithoutProject(todoHandlers);
+    renderProjectsAndTodosInMainContent(appHandlers);
+    renderTodosWithoutProject(appHandlers);
     updateTodoItemColor();
 }
 
